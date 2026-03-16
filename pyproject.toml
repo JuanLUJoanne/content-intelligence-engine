@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "content-intelligence-engine"
+version = "0.1.0"
+description = "Production-grade AI content processing and evaluation pipeline."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+langchain = "^0.3.0"
+openai = "^2.26.0"
+google-generativeai = "^0.7.0"
+pydantic = "^2.7.0"
+fastapi = "^0.115.0"
+structlog = "^24.0.0"
+tiktoken = "^0.7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
