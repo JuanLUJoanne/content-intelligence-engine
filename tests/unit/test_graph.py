@@ -388,3 +388,34 @@ class TestErrorFeedbackRetry:
 
         # The first prompt must NOT contain any of these retry markers.
         assert "Your previous response was invalid" not in first_prompt
+
+    @pytest.mark.asyncio
+    async def test_structural_failure_routes_to_dlq_immediately(self):
+        """Structurally wrong output (no expected fields) → DLQ, retry_count == 0."""
+        # Output has none of the expected fields — classified as structural_failure.
+        structurally_wrong = {"unrelated_key": "some text"}
+        provider = _SequenceProvider([structurally_wrong])
+        dlq: list[ProcessingState] = []
+        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+
+        state = await graph.run({"id": "structural-fail"})
+
+        assert state["sent_to_dlq"] is True
+        assert state["retry_count"] == 0
+        assert len(dlq) == 1
+        assert len(provider.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_field_error_retries_up_to_max_retries(self):
+        """Plausible dict with a bad field → retries MAX_RETRIES times → DLQ."""
+        # _INCOMPLETE_OUTPUT has "title" which is in _EXPECTED_FIELDS → field_error.
+        always_incomplete = [_INCOMPLETE_OUTPUT] * (ContentPipelineGraph._MAX_RETRIES + 1)
+        provider = _SequenceProvider(always_incomplete)
+        dlq: list[ProcessingState] = []
+        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+
+        state = await graph.run({"id": "field-error-retry"})
+
+        assert state["sent_to_dlq"] is True
+        assert state["retry_count"] == ContentPipelineGraph._MAX_RETRIES
+        assert len(provider.calls) == ContentPipelineGraph._MAX_RETRIES + 1

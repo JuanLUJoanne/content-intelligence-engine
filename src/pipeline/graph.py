@@ -58,6 +58,7 @@ class ProcessingState(TypedDict):
     llm_output: Optional[dict[str, Any]]
     validation_result: Optional[bool]
     last_validation_error: Optional[str]     # error from most recent failed validation
+    failure_type: Optional[str]              # "permanent" | "retryable" | None
     eval_score: Optional[float]
     retry_count: int
     final_output: Optional[dict[str, Any]]
@@ -74,6 +75,7 @@ def _initial_state(record: dict[str, Any]) -> ProcessingState:
         llm_output=None,
         validation_result=None,
         last_validation_error=None,
+        failure_type=None,
         eval_score=None,
         retry_count=0,
         final_output=None,
@@ -263,6 +265,9 @@ class ContentPipelineGraph:
             if state["validation_result"] is True:
                 break
 
+            if state["failure_type"] == "permanent":
+                return await self._node_send_to_dlq(state, reason="structural_failure")
+
             if state["retry_count"] >= self._MAX_RETRIES:
                 logger.warning(
                     "graph_max_retries_exceeded",
@@ -358,14 +363,26 @@ class ContentPipelineGraph:
         else:
             valid, error_msg = _default_validate(state["record"], llm_output)
 
+        failure_type: Optional[str] = None
         if not valid and error_msg is not None:
             failure_kind = _classify_validation_error(llm_output)
-            logger.warning(
-                "graph_validate_schema_failed",
-                failure_kind=failure_kind,
-                retry_count=state["retry_count"],
-                error=error_msg[:200],   # truncate for log readability
-            )
+            if failure_kind == "structural_failure":
+                failure_type = "permanent"
+                logger.error(
+                    "graph_validate_schema_structural_failure",
+                    failure_kind=failure_kind,
+                    retry_count=state["retry_count"],
+                    error=error_msg[:200],
+                    llm_output=llm_output,
+                )
+            else:
+                failure_type = "retryable"
+                logger.warning(
+                    "graph_validate_schema_failed",
+                    failure_kind=failure_kind,
+                    retry_count=state["retry_count"],
+                    error=error_msg[:200],
+                )
         else:
             logger.info(
                 "graph_validate_schema",
@@ -377,6 +394,7 @@ class ContentPipelineGraph:
             **state,
             "validation_result": valid,
             "last_validation_error": error_msg if not valid else None,
+            "failure_type": failure_type,
         }
 
     async def _node_score_confidence(self, state: ProcessingState) -> ProcessingState:
