@@ -64,6 +64,7 @@ class ProcessingState(TypedDict):
     final_output: Optional[dict[str, Any]]
     sent_to_dlq: bool
     sent_to_review: bool
+    sent_to_engineering: bool
     error: Optional[str]
 
 
@@ -81,6 +82,7 @@ def _initial_state(record: dict[str, Any]) -> ProcessingState:
         final_output=None,
         sent_to_dlq=False,
         sent_to_review=False,
+        sent_to_engineering=False,
         error=None,
     )
 
@@ -219,6 +221,8 @@ class ContentPipelineGraph:
         confidence_threshold: float = 0.7,
         dlq: Optional[list[ProcessingState]] = None,
         review_queue: Optional[list[ProcessingState]] = None,
+        engineering_queue: Optional[list[ProcessingState]] = None,
+        prompt_version: str = "v1",
     ) -> None:
         self._cache = cache
         self._provider = provider or ProviderFactory.get_provider(model_id)
@@ -231,6 +235,10 @@ class ContentPipelineGraph:
         self._review_queue: list[ProcessingState] = (
             review_queue if review_queue is not None else []
         )
+        self._engineering_queue: list[ProcessingState] = (
+            engineering_queue if engineering_queue is not None else []
+        )
+        self._prompt_version = prompt_version
 
     # ------------------------------------------------------------------
     # Entry point
@@ -266,7 +274,9 @@ class ContentPipelineGraph:
                 break
 
             if state["failure_type"] == "permanent":
-                return await self._node_send_to_dlq(state, reason="structural_failure")
+                return await self._node_send_to_engineering(
+                    state, reason="structural_failure"
+                )
 
             if state["retry_count"] >= self._MAX_RETRIES:
                 logger.warning(
@@ -274,7 +284,7 @@ class ContentPipelineGraph:
                     retry_count=state["retry_count"],
                     record_id=str(record.get("id", "")),
                 )
-                return await self._node_send_to_dlq(state, reason="max_retries_exceeded")
+                return await self._node_send_to_review(state)
 
             state = {**state, "retry_count": state["retry_count"] + 1}
             logger.info("graph_retry", retry_count=state["retry_count"])
@@ -430,6 +440,23 @@ class ContentPipelineGraph:
         updated: ProcessingState = {**state, "sent_to_dlq": True, "error": reason}
         self._dlq.append(updated)
         logger.warning("graph_sent_to_dlq", reason=reason)
+        return updated
+
+    async def _node_send_to_engineering(
+        self, state: ProcessingState, *, reason: str = "structural_failure"
+    ) -> ProcessingState:
+        updated: ProcessingState = {
+            **state,
+            "sent_to_engineering": True,
+            "error": reason,
+        }
+        self._engineering_queue.append(updated)
+        logger.error(
+            "graph_sent_to_engineering",
+            reason=reason,
+            prompt_version=self._prompt_version,
+            raw_llm_output=state["llm_output"],
+        )
         return updated
 
     async def _node_send_to_review(self, state: ProcessingState) -> ProcessingState:

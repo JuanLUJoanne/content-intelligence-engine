@@ -161,34 +161,40 @@ class TestValidationRetry:
 
 
 # ---------------------------------------------------------------------------
-# Max retries → DLQ
+# Max retries (field_error) → human review queue
 # ---------------------------------------------------------------------------
 
 
 class TestMaxRetriesDLQ:
     @pytest.mark.asyncio
-    async def test_max_retries_sends_to_dlq(self):
-        """validate_fn always returns False → 3 retries → DLQ."""
-        dlq: list[ProcessingState] = []
+    async def test_max_retries_sends_to_review(self):
+        """validate_fn always returns False → 3 retries → human review queue."""
+        review_queue: list[ProcessingState] = []
         graph = ContentPipelineGraph(
             model_id="dummy",
             validate_fn=lambda _: False,
-            dlq=dlq,
+            review_queue=review_queue,
         )
         state = await graph.run({"id": "dlq-test"})
 
-        assert state["sent_to_dlq"] is True
+        assert state["sent_to_review"] is True
+        assert state["sent_to_dlq"] is False
         assert state["final_output"] is None
-        assert len(dlq) == 1
+        assert len(review_queue) == 1
 
     @pytest.mark.asyncio
-    async def test_dlq_state_has_error_reason(self):
+    async def test_max_retries_not_sent_to_engineering(self):
+        """field_error max retries must NOT go to the engineering queue."""
+        engineering_queue: list[ProcessingState] = []
         graph = ContentPipelineGraph(
             model_id="dummy",
             validate_fn=lambda _: False,
+            engineering_queue=engineering_queue,
         )
-        state = await graph.run({"id": "dlq-reason"})
-        assert "max_retries" in (state["error"] or "")
+        state = await graph.run({"id": "dlq-no-eng"})
+
+        assert state["sent_to_engineering"] is False
+        assert len(engineering_queue) == 0
 
     @pytest.mark.asyncio
     async def test_dlq_retry_count_at_max(self):
@@ -344,19 +350,22 @@ class TestErrorFeedbackRetry:
         assert len(provider.calls) == 2
 
     @pytest.mark.asyncio
-    async def test_all_attempts_fail_sends_to_dlq(self):
-        """If every attempt returns invalid output the record goes to DLQ."""
+    async def test_all_field_error_attempts_sends_to_review(self):
+        """If every attempt returns a field_error, the record goes to human review."""
         # _MAX_RETRIES = 3, so the pipeline tries: attempt 0, retry 1, retry 2,
-        # retry 3 → max reached after retry 3, sent to DLQ.
+        # retry 3 → max reached after retry 3, sent to human review.
         always_invalid = [_INCOMPLETE_OUTPUT] * (ContentPipelineGraph._MAX_RETRIES + 1)
         provider = _SequenceProvider(always_invalid)
-        dlq: list[ProcessingState] = []
-        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+        review_queue: list[ProcessingState] = []
+        graph = ContentPipelineGraph(
+            provider=provider, model_id="dummy", review_queue=review_queue
+        )
 
         state = await graph.run({"id": "all-fail"})
 
-        assert state["sent_to_dlq"] is True
-        assert len(dlq) == 1
+        assert state["sent_to_review"] is True
+        assert state["sent_to_dlq"] is False
+        assert len(review_queue) == 1
         assert state["retry_count"] == ContentPipelineGraph._MAX_RETRIES
 
     @pytest.mark.asyncio
@@ -390,32 +399,38 @@ class TestErrorFeedbackRetry:
         assert "Your previous response was invalid" not in first_prompt
 
     @pytest.mark.asyncio
-    async def test_structural_failure_routes_to_dlq_immediately(self):
-        """Structurally wrong output (no expected fields) → DLQ, retry_count == 0."""
-        # Output has none of the expected fields — classified as structural_failure.
+    async def test_structural_failure_routes_to_engineering_queue(self):
+        """Structurally wrong output → engineering queue, retry_count == 0, 1 provider call."""
         structurally_wrong = {"unrelated_key": "some text"}
         provider = _SequenceProvider([structurally_wrong])
-        dlq: list[ProcessingState] = []
-        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+        engineering_queue: list[ProcessingState] = []
+        graph = ContentPipelineGraph(
+            provider=provider, model_id="dummy", engineering_queue=engineering_queue
+        )
 
         state = await graph.run({"id": "structural-fail"})
 
-        assert state["sent_to_dlq"] is True
+        assert state["sent_to_engineering"] is True
+        assert state["sent_to_dlq"] is False
+        assert state["sent_to_review"] is False
         assert state["retry_count"] == 0
-        assert len(dlq) == 1
+        assert len(engineering_queue) == 1
         assert len(provider.calls) == 1
 
     @pytest.mark.asyncio
     async def test_field_error_retries_up_to_max_retries(self):
-        """Plausible dict with a bad field → retries MAX_RETRIES times → DLQ."""
+        """Plausible dict with a bad field → retries MAX_RETRIES times → human review."""
         # _INCOMPLETE_OUTPUT has "title" which is in _EXPECTED_FIELDS → field_error.
         always_incomplete = [_INCOMPLETE_OUTPUT] * (ContentPipelineGraph._MAX_RETRIES + 1)
         provider = _SequenceProvider(always_incomplete)
-        dlq: list[ProcessingState] = []
-        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+        review_queue: list[ProcessingState] = []
+        graph = ContentPipelineGraph(
+            provider=provider, model_id="dummy", review_queue=review_queue
+        )
 
         state = await graph.run({"id": "field-error-retry"})
 
-        assert state["sent_to_dlq"] is True
+        assert state["sent_to_review"] is True
+        assert state["sent_to_engineering"] is False
         assert state["retry_count"] == ContentPipelineGraph._MAX_RETRIES
         assert len(provider.calls) == ContentPipelineGraph._MAX_RETRIES + 1

@@ -20,6 +20,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.api.review import engineering_router, router as review_router
 from src.eval.drift_detector import DriftDetector, DriftReport
 from src.eval.judge import EvalDimension, EvaluationResult, LLMJudge
 from src.gateway.batch import BatchSubmitter
@@ -35,6 +36,8 @@ from src.schemas.metadata import ContentMetadata
 logger = structlog.get_logger(__name__)
 
 app = FastAPI(title="Content Intelligence Engine")
+app.include_router(review_router)
+app.include_router(engineering_router)
 
 
 # ---------------------------------------------------------------------------

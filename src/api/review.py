@@ -1,12 +1,18 @@
 """
-Human-in-the-loop review API.
+Human-in-the-loop review API and engineering escalation API.
 
-This module exposes a small FastAPI router for the human review queue so
-that low-confidence or flagged pipeline outputs can be inspected, approved,
-or rejected before they are used in production or evaluation sets.
+This module exposes two FastAPI routers:
 
-Approved items are appended to a golden evaluation set that can be used as
-few-shot examples or to measure drift against human judgement.
+* ``/review/*`` — human review queue for low-confidence or field-error
+  pipeline outputs that a human can approve or correct.
+
+* ``/engineering/*`` — engineering queue for structural failures (LLM
+  returned plain text or a wholly wrong shape). These are prompt-level
+  problems that require an engineer to inspect, fix the prompt, and
+  run a backfill — human metadata review is not meaningful for them.
+
+Approved review items are appended to a golden evaluation set that can be
+used as few-shot examples or to measure drift against human judgement.
 """
 
 from __future__ import annotations
@@ -15,7 +21,7 @@ import asyncio
 import datetime
 import json
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
@@ -154,7 +160,82 @@ class ReviewStore:
 
 
 # ---------------------------------------------------------------------------
-# FastAPI router
+# Engineering queue data model + store
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class EngineeringQueueRecord:
+    """A structural failure queued for engineering inspection."""
+
+    item_id: str
+    failed_at: str              # ISO-8601 UTC
+    raw_llm_output: dict[str, Any]
+    validation_error: str
+    prompt_version: str
+    retry_count: int            # always 0 for structural failures
+    status: str = field(default="pending")   # "pending" | "requeued"
+
+
+class EngineeringStore:
+    """In-memory store for structural-failure records awaiting engineering action."""
+
+    def __init__(self) -> None:
+        self._records: dict[str, EngineeringQueueRecord] = {}
+
+    def add_record(
+        self,
+        *,
+        raw_llm_output: dict[str, Any],
+        validation_error: str,
+        prompt_version: str,
+        retry_count: int = 0,
+    ) -> str:
+        """Enqueue a new structural failure and return its assigned id."""
+        item_id = str(uuid.uuid4())
+        self._records[item_id] = EngineeringQueueRecord(
+            item_id=item_id,
+            failed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            raw_llm_output=raw_llm_output,
+            validation_error=validation_error,
+            prompt_version=prompt_version,
+            retry_count=retry_count,
+        )
+        logger.error(
+            "engineering_queue_record_added",
+            item_id=item_id,
+            prompt_version=prompt_version,
+        )
+        return item_id
+
+    def get_pending(self) -> list[EngineeringQueueRecord]:
+        """Return all records with status='pending' in insertion order."""
+        return [r for r in self._records.values() if r.status == "pending"]
+
+    def requeue(self, item_id: str) -> EngineeringQueueRecord:
+        """Mark a record as requeued (removes it from pending).
+
+        This is a simulated requeue: the record is kept for audit purposes
+        but no longer appears in ``get_pending()``.  The caller is responsible
+        for re-submitting the item to the actual processing pipeline.
+        """
+        record = self._records.get(item_id)
+        if record is None:
+            raise KeyError(f"Engineering queue record {item_id!r} not found")
+        record.status = "requeued"
+        logger.info("engineering_queue_requeued", item_id=item_id)
+        return record
+
+    def stats_by_prompt_version(self) -> dict[str, int]:
+        """Return count of *pending* records grouped by prompt_version."""
+        counts: dict[str, int] = {}
+        for record in self.get_pending():
+            counts[record.prompt_version] = counts.get(record.prompt_version, 0) + 1
+        return counts
+
+
+# ---------------------------------------------------------------------------
+# FastAPI router — human review
 # ---------------------------------------------------------------------------
 
 
@@ -212,3 +293,53 @@ async def reject_item(item_id: str, body: RejectBody) -> dict[str, Any]:
 async def get_stats() -> dict[str, Any]:
     """Return counts of pending, approved, and rejected items."""
     return _default_store.stats()
+
+
+# ---------------------------------------------------------------------------
+# FastAPI router — engineering queue
+# ---------------------------------------------------------------------------
+
+
+engineering_router = APIRouter(prefix="/engineering", tags=["engineering"])
+
+# Module-level singleton used by the router endpoints.
+_default_engineering_store = EngineeringStore()
+
+
+def _engineering_to_dict(record: EngineeringQueueRecord) -> dict[str, Any]:
+    return {
+        "item_id": record.item_id,
+        "failed_at": record.failed_at,
+        "raw_llm_output": record.raw_llm_output,
+        "validation_error": record.validation_error,
+        "prompt_version": record.prompt_version,
+        "retry_count": record.retry_count,
+        "status": record.status,
+    }
+
+
+@engineering_router.get("/pending")
+async def engineering_get_pending() -> list[dict[str, Any]]:
+    """Return all structural failures currently awaiting engineering action."""
+    return [_engineering_to_dict(r) for r in _default_engineering_store.get_pending()]
+
+
+@engineering_router.post("/{item_id}/requeue")
+async def engineering_requeue(item_id: str) -> dict[str, Any]:
+    """Mark a structural failure as fixed and remove it from the pending queue.
+
+    This is a simulated requeue: the record status is set to 'requeued' so it
+    no longer appears in ``/engineering/pending``.  Re-submitting the item to
+    the actual processing pipeline is the caller's responsibility.
+    """
+    try:
+        record = _default_engineering_store.requeue(item_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return _engineering_to_dict(record)
+
+
+@engineering_router.get("/stats")
+async def engineering_get_stats() -> dict[str, Any]:
+    """Return pending failure counts grouped by prompt_version."""
+    return _default_engineering_store.stats_by_prompt_version()
