@@ -24,6 +24,7 @@ import json
 from typing import Any, Callable, Optional, Protocol, TypedDict, runtime_checkable
 
 import structlog
+from pydantic import ValidationError
 
 from src.gateway.providers import LLMProvider, ProviderFactory
 from src.schemas.metadata import ContentMetadata
@@ -52,10 +53,11 @@ class ProcessingState(TypedDict):
     """Full state dict passed between graph nodes."""
 
     record: dict[str, Any]
-    cache_result: Optional[str]          # JSON string on cache hit
+    cache_result: Optional[str]              # JSON string on cache hit
     model_id: Optional[str]
     llm_output: Optional[dict[str, Any]]
     validation_result: Optional[bool]
+    last_validation_error: Optional[str]     # error from most recent failed validation
     eval_score: Optional[float]
     retry_count: int
     final_output: Optional[dict[str, Any]]
@@ -71,6 +73,7 @@ def _initial_state(record: dict[str, Any]) -> ProcessingState:
         model_id=None,
         llm_output=None,
         validation_result=None,
+        last_validation_error=None,
         eval_score=None,
         retry_count=0,
         final_output=None,
@@ -101,22 +104,76 @@ class _CacheBackend(Protocol):
 # ---------------------------------------------------------------------------
 
 
-def _default_validate(record: dict[str, Any], llm_output: dict[str, Any]) -> bool:
-    """Attempt ContentMetadata construction; return True on success."""
+def _default_validate(
+    record: dict[str, Any], llm_output: dict[str, Any]
+) -> tuple[bool, Optional[str]]:
+    """Attempt ContentMetadata construction; return (success, error_message).
+
+    Returning the error string rather than swallowing it lets the retry loop
+    feed Pydantic's exact complaint back to the LLM so subsequent attempts fix
+    the specific problem instead of guessing.
+    """
     try:
         ContentMetadata(
             content_id=str(record.get("id", "")),
             title=llm_output.get("title", ""),
             description=llm_output.get("description"),
-            category=llm_output.get("category", "electronics"),
-            condition=llm_output.get("condition", "new"),
-            price_range=llm_output.get("price_range", "unpriced"),
+            # Do NOT provide fallbacks for required enum fields — letting them
+            # be absent or None allows Pydantic to report the exact missing-field
+            # error that gets fed back to the LLM on the next retry.
+            category=llm_output.get("category"),
+            condition=llm_output.get("condition"),
+            price_range=llm_output.get("price_range"),
             tags=llm_output.get("tags", []),
             language=llm_output.get("language", "en"),
         )
-        return True
-    except Exception:
-        return False
+        return True, None
+    except ValidationError as exc:
+        return False, str(exc)
+    except Exception as exc:
+        return False, str(exc)
+
+
+# Fields whose presence distinguishes a plausible-but-invalid dict from a
+# response that is structurally wrong (e.g. plain text, completely off-schema).
+_EXPECTED_FIELDS: frozenset[str] = frozenset({"title", "category", "condition", "price_range"})
+
+
+def _classify_validation_error(llm_output: dict[str, Any]) -> str:
+    """Return a log-friendly failure category.
+
+    Transient formatting failures (a real dict missing one or two fields) are
+    worth distinguishing from structural failures (the LLM returned plain text
+    or a wholly unrelated JSON shape) because they suggest different root causes:
+    prompt phrasing vs model capability.
+    """
+    if not any(k in llm_output for k in _EXPECTED_FIELDS):
+        return "structural_failure"
+    return "field_error"
+
+
+def _build_retry_prompt(
+    original_prompt: str,
+    bad_response: dict[str, Any],
+    error_msg: str,
+) -> str:
+    """Construct an error-feedback prompt for the next retry attempt.
+
+    Including the exact Pydantic error gives the LLM specific, actionable
+    information (e.g. 'value is not a valid enum member') rather than a vague
+    instruction to 'try again', which dramatically improves fix rates on
+    transient formatting mistakes.
+    """
+    return (
+        f"{original_prompt}\n\n"
+        "---\n"
+        "Your previous response was invalid. Here is what you returned:\n"
+        f"{json.dumps(bad_response, ensure_ascii=False)}\n\n"
+        "This failed schema validation with the following error:\n"
+        f"{error_msg}\n\n"
+        "Please fix the specific issue above and return ONLY a valid JSON object. "
+        "Do not include explanations, markdown, or any text outside the JSON."
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -257,7 +314,24 @@ class ContentPipelineGraph:
         return {**state, "model_id": self._model_id}
 
     async def _node_call_llm(self, state: ProcessingState) -> ProcessingState:
-        prompt = json.dumps(state["record"], ensure_ascii=False)
+        original_prompt = json.dumps(state["record"], ensure_ascii=False)
+
+        # On a retry, build an error-feedback prompt so the LLM knows exactly
+        # what it got wrong rather than blindly regenerating the same output.
+        if state["last_validation_error"] is not None and state["llm_output"] is not None:
+            prompt = _build_retry_prompt(
+                original_prompt,
+                state["llm_output"],
+                state["last_validation_error"],
+            )
+            logger.info(
+                "graph_llm_retry_with_feedback",
+                retry_count=state["retry_count"],
+                model_id=state["model_id"],
+            )
+        else:
+            prompt = original_prompt
+
         try:
             result = await self._provider.generate(
                 prompt, state["model_id"] or self._model_id
@@ -270,20 +344,40 @@ class ContentPipelineGraph:
 
     async def _node_validate_schema(self, state: ProcessingState) -> ProcessingState:
         llm_output = state["llm_output"] or {}
-        try:
-            if self._validate_fn is not None:
-                valid = self._validate_fn(llm_output)
-            else:
-                valid = _default_validate(state["record"], llm_output)
-        except Exception:
-            valid = False
+        error_msg: Optional[str] = None
 
-        logger.info(
-            "graph_validate_schema",
-            valid=valid,
-            retry_count=state["retry_count"],
-        )
-        return {**state, "validation_result": valid}
+        if self._validate_fn is not None:
+            # External validate_fn only returns bool; use a generic error message
+            # so the retry prompt still tells the LLM something went wrong.
+            try:
+                valid = self._validate_fn(llm_output)
+            except Exception:
+                valid = False
+            if not valid:
+                error_msg = "Output failed schema validation. Ensure all required fields are present and values match the expected types."
+        else:
+            valid, error_msg = _default_validate(state["record"], llm_output)
+
+        if not valid and error_msg is not None:
+            failure_kind = _classify_validation_error(llm_output)
+            logger.warning(
+                "graph_validate_schema_failed",
+                failure_kind=failure_kind,
+                retry_count=state["retry_count"],
+                error=error_msg[:200],   # truncate for log readability
+            )
+        else:
+            logger.info(
+                "graph_validate_schema",
+                valid=valid,
+                retry_count=state["retry_count"],
+            )
+
+        return {
+            **state,
+            "validation_result": valid,
+            "last_validation_error": error_msg if not valid else None,
+        }
 
     async def _node_score_confidence(self, state: ProcessingState) -> ProcessingState:
         score = self._confidence_fn(state["llm_output"] or {})

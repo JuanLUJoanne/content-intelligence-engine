@@ -287,3 +287,104 @@ class TestSanitizerIntegration:
         state = await graph.run({"id": "clean", "content": "nice photo of a cat"})
         assert state["error"] is None
         assert state["final_output"] is not None
+
+
+# ---------------------------------------------------------------------------
+# Error-feedback retry
+# ---------------------------------------------------------------------------
+
+
+class _SequenceProvider:
+    """Provider that returns responses from a fixed list in order.
+
+    Using a list makes it easy to test multi-attempt scenarios without
+    randomness: each call pops the next response, and the call history
+    is recorded so tests can inspect what prompt was sent on each attempt.
+    """
+
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self._responses = list(responses)
+        self.calls: list[str] = []  # prompts received, in order
+
+    async def generate(self, prompt: str, model_id: str) -> dict[str, Any]:
+        self.calls.append(prompt)
+        if not self._responses:
+            raise RuntimeError("_SequenceProvider: no more responses")
+        return self._responses.pop(0)
+
+
+_VALID_OUTPUT: dict[str, Any] = {
+    "title": "Wireless Bluetooth Speaker",
+    "description": "Portable speaker with 360-degree sound.",
+    "category": "electronics",
+    "condition": "new",
+    "price_range": "mid_range",
+    "tags": ["bluetooth", "speaker"],
+    "language": "en",
+}
+
+# Missing required enum fields — will fail ContentMetadata validation.
+_INCOMPLETE_OUTPUT: dict[str, Any] = {
+    "title": "Some Product",
+}
+
+
+class TestErrorFeedbackRetry:
+    @pytest.mark.asyncio
+    async def test_first_attempt_fails_validation_second_succeeds(self):
+        """Incomplete output on attempt 1 → valid output on attempt 2 → no DLQ."""
+        provider = _SequenceProvider([_INCOMPLETE_OUTPUT, _VALID_OUTPUT])
+        graph = ContentPipelineGraph(provider=provider, model_id="dummy")
+
+        state = await graph.run({"id": "feedback-test"})
+
+        assert state["sent_to_dlq"] is False
+        assert state["final_output"] is not None
+        assert state["retry_count"] == 1
+        assert len(provider.calls) == 2
+
+    @pytest.mark.asyncio
+    async def test_all_attempts_fail_sends_to_dlq(self):
+        """If every attempt returns invalid output the record goes to DLQ."""
+        # _MAX_RETRIES = 3, so the pipeline tries: attempt 0, retry 1, retry 2,
+        # retry 3 → max reached after retry 3, sent to DLQ.
+        always_invalid = [_INCOMPLETE_OUTPUT] * (ContentPipelineGraph._MAX_RETRIES + 1)
+        provider = _SequenceProvider(always_invalid)
+        dlq: list[ProcessingState] = []
+        graph = ContentPipelineGraph(provider=provider, model_id="dummy", dlq=dlq)
+
+        state = await graph.run({"id": "all-fail"})
+
+        assert state["sent_to_dlq"] is True
+        assert len(dlq) == 1
+        assert state["retry_count"] == ContentPipelineGraph._MAX_RETRIES
+
+    @pytest.mark.asyncio
+    async def test_error_feedback_included_in_retry_prompt(self):
+        """The prompt sent on attempt N+1 must contain the validation error from attempt N."""
+        provider = _SequenceProvider([_INCOMPLETE_OUTPUT, _VALID_OUTPUT])
+        graph = ContentPipelineGraph(provider=provider, model_id="dummy")
+
+        await graph.run({"id": "feedback-content"})
+
+        # Two calls must have been made.
+        assert len(provider.calls) == 2
+
+        first_prompt = provider.calls[0]
+        retry_prompt = provider.calls[1]
+
+        # The retry prompt must include the original prompt content.
+        assert "feedback-content" in retry_prompt
+
+        # The retry prompt must include the invalid response the LLM returned.
+        assert "Some Product" in retry_prompt
+
+        # The retry prompt must reference a validation error — Pydantic will
+        # complain about missing required fields (category, condition, price_range).
+        assert any(
+            phrase in retry_prompt
+            for phrase in ("validation", "required", "category", "condition", "price_range")
+        )
+
+        # The first prompt must NOT contain any of these retry markers.
+        assert "Your previous response was invalid" not in first_prompt
