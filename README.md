@@ -1,6 +1,6 @@
 # Multi-Modal Content Intelligence Engine
 
-Production-grade AI pipeline framework with dynamic model routing, cost guardrails, and eval-driven development. Designed to solve real problems running LLMs in production: quality inconsistency, unpredictable costs, and lack of systematic evaluation. Built from scratch as an open-source framework.
+Production-grade AI pipeline framework with dynamic model routing, cost guardrails, eval-driven development, and an agentic personalised recommendation layer. Designed to solve real problems running LLMs in production: quality inconsistency, unpredictable costs, lack of systematic evaluation, and cold-start personalisation.
 
 
 ## Architecture
@@ -39,10 +39,11 @@ Production-grade AI pipeline framework with dynamic model routing, cost guardrai
                         └────────────────────────┬────────────────────────────┘
                                                  │
                         ┌────────────────────────▼────────────────────────────┐
-                        │              Schema Validation (3 retries)          │
+                        │         Schema Validation + Failure Routing         │
                         │                                                     │
-                        │   FAIL (×3) ──────────────────────────► DLQ         │
-                        │   PASS                                              │
+                        │  structural_failure ──────────► Engineering Queue   │
+                        │  field_error (×3 retries) ────► Human Review Queue  │
+                        │  PASS                                               │
                         └────────────────────────┬────────────────────────────┘
                                                  │
                         ┌────────────────────────▼────────────────────────────┐
@@ -55,6 +56,36 @@ Production-grade AI pipeline framework with dynamic model routing, cost guardrai
                         ┌────────────────────────▼────────────────────────────┐
                         │           Store Result + Audit Log (JSONL)          │
                         └─────────────────────────────────────────────────────┘
+
+
+  Agentic Recommendation Layer (runs independently of the processing pipeline)
+
+                        ┌───────────────────────────────────────────────────────────┐
+                        │                 MCPClient (real or mock)                  │
+                        │   get_browsing_history · get_purchase_history             │
+                        │   get_asset_metadata                                      │
+                        └────────────────────────┬──────────────────────────────────┘
+                                                 │
+                        ┌────────────────────────▼────────────────────────────┐
+                        │           BuyerProfile (tag affinity, top category) │
+                        └────────────────────────┬────────────────────────────┘
+                                                 │
+                        ┌────────────────────────▼────────────────────────────┐
+                        │         A/B Experiment (Variant A / B assignment)   │
+                        │     purchase_history_based vs browsing_pattern_based│
+                        └────────────────────────┬────────────────────────────┘
+                                                 │
+                        ┌────────────────────────▼────────────────────────────┐
+                        │       AssetRetriever (tag-affinity ranked corpus)   │
+                        └────────────────────────┬────────────────────────────┘
+                                                 │
+                        ┌────────────────────────▼────────────────────────────┐
+                        │     LLM Email Generation + Judge Eval + Cost Track  │
+                        └────────────────────────┬────────────────────────────┘
+                                                 │
+                        ┌────────────────────────▼────────────────────────────┐
+                        │           Log result to ReviewStore (A/B audit)     │
+                        └─────────────────────────────────────────────────────┘
 ```
 
 ## Key Design Decisions
@@ -62,8 +93,8 @@ Production-grade AI pipeline framework with dynamic model routing, cost guardrai
 **1. Heuristic routing over LLM routing**
 Routing decisions (which model tier to use) are made with deterministic heuristics — token count, latency sensitivity, cost sensitivity — rather than asking an LLM. LLM-based routing adds latency and cost to every request and introduces a bootstrapping paradox: you need a model to decide which model to use. Heuristics are predictable, fast, and trivially unit-testable.
 
-**2. Three-stage schema validation with retry**
-Every LLM response goes through Pydantic schema validation before being stored. Failures trigger up to three retries before routing to the dead-letter queue (DLQ). This pattern catches transient LLM formatting mistakes (which happen ~5% of the time at scale) without permanently failing the record, while the DLQ ceiling prevents infinite loops from poisoning throughput.
+**2. Failure-type-aware validation routing**
+Schema validation failures are split into two distinct paths: *structural failures* (malformed JSON, completely missing fields) go directly to an engineering queue — no retry is attempted, because retrying a broken prompt template wastes quota and obscures the root cause. *Field errors* (wrong enum value, out-of-range number) trigger up to three error-feedback retries, passing the exact Pydantic error message back to the LLM so it can self-correct. This separation means engineers get a clean signal about prompt regressions without drowning in human-review noise.
 
 **3. Record-level checkpointing**
 Each successfully processed record is checkpointed immediately after storage. On restart or failure, the pipeline replays only unprocessed records. This makes the pipeline idempotent across crashes, restarts, and partial batch failures without requiring distributed transactions.
@@ -73,6 +104,12 @@ Four independent guardrail levels — per-request, per-minute sliding window, an
 
 **5. LLM-as-Judge for eval**
 Output quality is scored by a separate LLM judge across five dimensions: factual accuracy, hallucination rate, semantic consistency, relevance, and schema compliance. Using a language model as the evaluator catches subtle quality regressions that rule-based metrics miss, while the separate judge model avoids the "marking your own homework" problem. Scores below 0.7 are routed to human review rather than rejected outright.
+
+**6. A/B-tested personalised recommendations**
+The recommendation layer assigns users deterministically to variants using `hash(user_id) % 2`, so the same user always sees the same prompt flavour across requests without storing session state. Variant A weights purchase history; Variant B weights browsing patterns. Every result is logged to the ReviewStore so effect sizes can be computed offline using Cohen's d.
+
+**7. MCP tool layer as a data-fetching adapter**
+`RecommendationAgent.run()` accepts an optional `MCPClient`. When provided, buyer history is fetched via the Model Context Protocol; when absent, the caller passes resolved asset lists directly. The mock path (`use_mock=True`) uses `hash()`-based determinism — no random seed, no network — so tests are reproducible without fixtures or patching.
 
 ## Production Features
 
@@ -87,11 +124,15 @@ Output quality is scored by a separate LLM judge across five dimensions: factual
 | **Drift detection** | Baseline comparison across 5 eval dimensions; alerts on regression |
 | **Prompt versioning** | Register, rollback, and auto-rollback prompt versions on drift |
 | **A/B prompt comparison** | Statistical comparison with Cohen's d effect size and 2% minimum threshold |
-| **Human review queue** | Low-confidence outputs routed to review; approvals written to golden set |
+| **Failure-type routing** | structural_failure → engineering queue; field_error (×3) → human review queue |
+| **Engineering queue** | REST API for ops to inspect and requeue structural validation failures |
+| **Human review queue** | Low-confidence and field-error outputs routed to review; approvals written to golden set |
+| **Personalised recommendations** | A/B-tested email generation driven by tag-affinity buyer profiles |
+| **MCP tool layer** | MCPClient adapter fetches real buyer data; deterministic mock for offline testing |
 | **Input sanitization** | 12-pattern prompt injection detection with fast-fail at API boundary |
 | **PII detection** | Regex-based detection and redaction of emails, phone numbers, credit cards |
 | **Audit logging** | Append-only JSONL audit trail for every request/response |
-| **LangGraph orchestration** | 7-node stateful pipeline with conditional edges, retry loops, and DLQ routing |
+| **LangGraph orchestration** | 7-node stateful pipeline with conditional edges, retry loops, and failure routing |
 | **SSE streaming** | Server-Sent Events progress stream for real-time UI integration |
 
 ## Eval Metrics
@@ -121,7 +162,7 @@ Batch mode halves cost again by using provider batch APIs (50% discount) at the 
 ```bash
 cp .env.example .env          # add OPENAI_API_KEY / GOOGLE_API_KEY
 pip install -e .
-pytest tests/unit/ -v         # 186+ tests, ~8s
+pytest tests/unit/ -v         # 251+ tests, ~8s
 python scripts/demo.py        # end-to-end demo without real API keys
 uvicorn src.api.main:app --reload
 ```
@@ -141,6 +182,9 @@ uvicorn src.api.main:app --reload
 | `POST` | `/review/{id}/approve` | Approve a review item (writes to golden set) |
 | `POST` | `/review/{id}/reject` | Reject a review item with a reason |
 | `GET` | `/review/stats` | Review queue statistics and approval rate |
+| `GET` | `/engineering/pending` | List structural validation failures pending investigation |
+| `POST` | `/engineering/{id}/requeue` | Mark an engineering failure for reprocessing |
+| `GET` | `/engineering/stats` | Failure counts grouped by prompt version |
 
 ### Example: process a single item
 
@@ -204,33 +248,44 @@ data: {"event": "complete", "status": "ok", "metadata": {...}}
 | API framework | FastAPI + Uvicorn |
 | Storage | SQLite (checkpoints), JSON (golden set), JSONL (audit log) |
 | Logging | structlog (structured JSON logs) |
-| Testing | pytest + pytest-asyncio (186+ unit tests) |
+| Testing | pytest + pytest-asyncio (251+ unit tests) |
 
 ## Project Layout
 
 ```
 src/
 ├── api/
-│   ├── main.py          # FastAPI app and all endpoints
-│   └── review.py        # Human review queue and golden-set management
+│   ├── main.py              # FastAPI app, routers, and all endpoints
+│   └── review.py            # Human review queue, engineering queue, golden-set management
+├── agents/
+│   ├── recommendation_agent.py  # End-to-end personalised recommendation pipeline
+│   └── memory/
+│       └── buyer_profile.py     # BuyerProfile, tag-affinity computation, MCP-backed factory
+├── ab_test/
+│   └── experiment.py        # Variant assignment, prompt templates, result logging
+├── retrieval/
+│   └── asset_retriever.py   # Tag-affinity scored in-memory corpus search
+├── mcp/
+│   ├── tools.py             # ANALYTICS_TOOLS MCP schema definitions
+│   └── client.py            # MCPClient with deterministic mock and real stub
 ├── eval/
-│   ├── judge.py         # LLM-as-Judge with per-dimension prompts
-│   ├── drift_detector.py# Baseline comparison and drift alerting
-│   └── ab_prompt.py     # A/B comparison with Cohen's d effect size
+│   ├── judge.py             # LLM-as-Judge with per-dimension prompts
+│   ├── drift_detector.py    # Baseline comparison and drift alerting
+│   └── ab_prompt.py         # A/B comparison with Cohen's d effect size
 ├── gateway/
-│   ├── providers.py     # LLMProvider protocol + Gemini/OpenAI/Dummy impls
-│   ├── router.py        # Heuristic model router with cost-aware scoring
-│   ├── cost_tracker.py  # Token accounting and budget enforcement
-│   ├── guardrails.py    # Multi-level cost guardrail system
-│   ├── batch.py         # Async batch submission and polling
-│   ├── cache.py         # Response cache with TTL
-│   ├── circuit_breaker.py # Per-model circuit breaker
-│   ├── rate_limiter.py  # Token-bucket rate limiter
-│   └── security.py      # Sanitization, PII detection, audit logging
+│   ├── providers.py         # LLMProvider protocol + Gemini/OpenAI/Dummy impls
+│   ├── router.py            # Heuristic model router with cost-aware scoring
+│   ├── cost_tracker.py      # Token accounting and budget enforcement
+│   ├── guardrails.py        # Multi-level cost guardrail system
+│   ├── batch.py             # Async batch submission and polling
+│   ├── cache.py             # Response cache with TTL
+│   ├── circuit_breaker.py   # Per-model circuit breaker
+│   ├── rate_limiter.py      # Token-bucket rate limiter
+│   └── security.py          # Sanitization, PII detection, audit logging
 └── pipeline/
-    ├── graph.py         # 7-node ContentPipelineGraph (LangGraph-style)
-    ├── processor.py     # BatchProcessor with checkpointing and DLQ
-    ├── checkpoint.py    # Record-level checkpoint persistence
-    ├── versioning.py    # Prompt registry with rollback and auto-rollback
-    └── prompt_chain.py  # Multi-step prompt chaining utilities
+    ├── graph.py             # 7-node ContentPipelineGraph with failure-type routing
+    ├── processor.py         # BatchProcessor with checkpointing and DLQ
+    ├── checkpoint.py        # Record-level checkpoint persistence
+    ├── versioning.py        # Prompt registry with rollback and auto-rollback
+    └── prompt_chain.py      # Multi-step prompt chaining utilities
 ```
