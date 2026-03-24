@@ -14,11 +14,14 @@ retrieval or prompt logic.
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import TYPE_CHECKING, Dict, List
 
 import structlog
 
 from src.schemas.metadata import ContentMetadata
+
+if TYPE_CHECKING:
+    from src.mcp.client import MCPClient
 
 
 logger = structlog.get_logger(__name__)
@@ -155,3 +158,41 @@ def make_buyer_profile(
         browse_count=len(browsed_assets),
     )
     return profile
+
+
+# ---------------------------------------------------------------------------
+# MCP-backed profile factory
+# ---------------------------------------------------------------------------
+
+
+async def build_buyer_profile(
+    user_id: str,
+    mcp_client: "MCPClient",
+) -> BuyerProfile:
+    """Fetch buyer history via MCPClient and construct a BuyerProfile.
+
+    This is the preferred factory when a real or mock MCPClient is available.
+    It fetches browsing and purchase IDs, resolves them to ContentMetadata
+    objects in a single batch call, then delegates to ``make_buyer_profile``
+    for the affinity and category computation.
+
+    Parameters
+    ----------
+    user_id:
+        Stable buyer identifier used for all MCP lookups.
+    mcp_client:
+        An ``MCPClient`` instance (mock or real).  The caller controls whether
+        live data is used by setting ``use_mock`` at construction time.
+    """
+    browsing_ids = await mcp_client.get_browsing_history(user_id)
+    purchase_ids = await mcp_client.get_purchase_history(user_id)
+
+    # Resolve all IDs in a single batch; deduplicate to avoid redundant fetches.
+    all_ids = list(dict.fromkeys(browsing_ids + purchase_ids))
+    assets = await mcp_client.get_asset_metadata(all_ids)
+    asset_map = {a.content_id: a for a in assets}
+
+    browsing_assets = [asset_map[aid] for aid in browsing_ids if aid in asset_map]
+    purchase_assets = [asset_map[aid] for aid in purchase_ids if aid in asset_map]
+
+    return make_buyer_profile(user_id, purchase_assets, browsing_assets)

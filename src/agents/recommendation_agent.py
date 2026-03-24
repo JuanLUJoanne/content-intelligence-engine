@@ -30,10 +30,11 @@ from typing import Dict, List, Optional
 import structlog
 
 from src.ab_test.experiment import ABExperiment, Variant
-from src.agents.memory.buyer_profile import BuyerProfile, make_buyer_profile
+from src.agents.memory.buyer_profile import BuyerProfile, build_buyer_profile, make_buyer_profile
 from src.eval.judge import LLMJudge
 from src.gateway.cost_tracker import CostTracker
 from src.gateway.providers import ProviderFactory
+from src.mcp.client import MCPClient
 from src.retrieval.asset_retriever import AssetRetriever
 from src.schemas.metadata import ContentMetadata
 
@@ -127,6 +128,7 @@ class RecommendationAgent:
         *,
         purchased_assets: Optional[List[ContentMetadata]] = None,
         browsed_assets: Optional[List[ContentMetadata]] = None,
+        mcp_client: Optional[MCPClient] = None,
     ) -> RecommendationResult:
         """Run the full recommendation pipeline and return a result.
 
@@ -138,17 +140,26 @@ class RecommendationAgent:
             Full corpus of assets the agent may recommend from.
         purchased_assets:
             Resolved ContentMetadata objects for the buyer's purchase history.
-            Defaults to an empty list (new buyer).
+            Ignored when ``mcp_client`` is provided.  Defaults to an empty list
+            (new buyer).
         browsed_assets:
             Resolved ContentMetadata objects for the buyer's browsing history.
-            Defaults to the first few available assets when empty so the agent
-            always has *some* affinity signal to work with.
+            Ignored when ``mcp_client`` is provided.  Defaults to the first few
+            available assets when empty so the agent always has *some* affinity
+            signal to work with.
+        mcp_client:
+            Optional MCPClient.  When provided the agent fetches buyer history
+            via MCP instead of using the ``purchased_assets``/``browsed_assets``
+            arguments.  Supports both mock (``use_mock=True``) and real
+            (``use_mock=False``) data sources.
         """
-        purchased = purchased_assets or []
-        browsed = browsed_assets or available_assets[: self._TOP_AFFINITY_TAGS]
-
         # Step 1 — build buyer profile
-        profile = make_buyer_profile(user_id, purchased, browsed)
+        if mcp_client is not None:
+            profile = await build_buyer_profile(user_id, mcp_client)
+        else:
+            purchased = purchased_assets or []
+            browsed = browsed_assets or available_assets[: self._TOP_AFFINITY_TAGS]
+            profile = make_buyer_profile(user_id, purchased, browsed)
 
         # Step 2 — assign variant
         variant = self._experiment.assign_variant(user_id)
