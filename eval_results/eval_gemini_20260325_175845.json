@@ -1,0 +1,223 @@
+{
+  "run_date": "2026-03-25T06:58:45.870031+00:00",
+  "provider": "gemini",
+  "judge_enabled": true,
+  "dataset": "eval_data/product_metadata_50.jsonl",
+  "record_count": 5,
+  "total_elapsed_s": 889.9,
+  "avg_latency_ms": 45114.2,
+  "schema_compliance": 0.8,
+  "retry_rate": 0.8,
+  "avg_retries_per_record": 0.8,
+  "structural_failure_rate": 0.2,
+  "review_route_rate": 0.0,
+  "dlq_rate": 0.0,
+  "ground_truth_averages": {
+    "category_match": 0.8,
+    "condition_match": 0.6,
+    "price_range_match": 0.4,
+    "tag_recall": 0.0,
+    "overall_structural": 0.45
+  },
+  "judge_averages": {
+    "factual_accuracy": 0.975,
+    "schema_compliance": 0.9,
+    "hallucination": 0.975,
+    "semantic_consistency": 0.9875,
+    "relevance": 1.0
+  },
+  "per_record_results": [
+    {
+      "id": "eval-001",
+      "input": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones, Black, Bluetooth 5.2, 30hr battery, multipoint connection",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "product_name": "Sony WH-1000XM5",
+        "category": "electronics",
+        "color": "Black",
+        "connectivity": "Bluetooth 5.2",
+        "battery_life": "30hr",
+        "features": [
+          "Wireless",
+          "Noise Cancelling",
+          "Multipoint connection"
+        ],
+        "condition": "new",
+        "price_range": "premium"
+      },
+      "validation_passed": true,
+      "retry_count": 1,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 173971.4,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 1.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.75
+      },
+      "judge_scores": {
+        "factual_accuracy": 1.0,
+        "schema_compliance": 0.8,
+        "hallucination": 1.0,
+        "semantic_consistency": 1.0,
+        "relevance": 1.0
+      },
+      "judge_overall": 0.96
+    },
+    {
+      "id": "eval-002",
+      "input": "Apple MacBook Pro 14-inch M3 Pro chip, Space Black, 18GB RAM, 512GB SSD, sealed in box",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "product_name": "Apple MacBook Pro 14-inch",
+        "processor": "M3 Pro chip",
+        "color": "Space Black",
+        "memory": "18GB RAM",
+        "storage": "512GB SSD",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "premium"
+      },
+      "validation_passed": true,
+      "retry_count": 1,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 5195.8,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": {
+        "factual_accuracy": 1.0,
+        "schema_compliance": 0.8,
+        "hallucination": 1.0,
+        "semantic_consistency": 1.0,
+        "relevance": 1.0
+      },
+      "judge_overall": 0.96
+    },
+    {
+      "id": "eval-003",
+      "input": "Refurbished Samsung Galaxy S23 Ultra 256GB Phantom Black unlocked - minor scratches on back",
+      "expected_category": "electronics",
+      "expected_condition": "refurbished",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "product_name": "Samsung Galaxy S23 Ultra",
+        "storage_capacity": "256GB",
+        "color": "Phantom Black",
+        "condition": "refurbished",
+        "cosmetic_defects": "minor scratches on back",
+        "network_status": "unlocked",
+        "category": "electronics",
+        "price_range": "premium"
+      },
+      "validation_passed": true,
+      "retry_count": 1,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 18033.3,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": {
+        "factual_accuracy": 0.9,
+        "schema_compliance": 1.0,
+        "hallucination": 1.0,
+        "semantic_consistency": 1.0,
+        "relevance": 1.0
+      },
+      "judge_overall": 0.98
+    },
+    {
+      "id": "eval-004",
+      "input": "USB-C charging cable 2m braided nylon",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": null,
+      "validation_passed": false,
+      "retry_count": 0,
+      "failure_type": "permanent",
+      "sent_to_review": false,
+      "sent_to_engineering": true,
+      "sent_to_dlq": false,
+      "eval_score": null,
+      "latency_ms": 3660.5,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-005",
+      "input": "Vintage 1980s Technics SL-1200MK2 Turntable direct drive, fully serviced, new stylus, original dust cover intact, tested and working perfectly - audiophile collector piece",
+      "expected_category": "electronics",
+      "expected_condition": "good",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "product_name": "Technics SL-1200MK2 Turntable",
+        "vintage": "1980s",
+        "drive_type": "direct drive",
+        "condition": "refurbished",
+        "included_accessories": [
+          "new stylus",
+          "original dust cover"
+        ],
+        "category": "electronics",
+        "is_collector_piece": true,
+        "price_range": "premium"
+      },
+      "validation_passed": true,
+      "retry_count": 1,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 24709.8,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": {
+        "factual_accuracy": 1.0,
+        "schema_compliance": 1.0,
+        "hallucination": 0.9,
+        "semantic_consistency": 0.95,
+        "relevance": 1.0
+      },
+      "judge_overall": 0.97
+    }
+  ]
+}

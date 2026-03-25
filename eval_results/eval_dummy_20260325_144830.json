@@ -1,0 +1,1874 @@
+{
+  "run_date": "2026-03-25T03:48:30.739685+00:00",
+  "provider": "dummy",
+  "judge_enabled": false,
+  "dataset": "eval_data/product_metadata_50.jsonl",
+  "record_count": 50,
+  "total_elapsed_s": 0.1,
+  "avg_latency_ms": 1.6,
+  "schema_compliance": 1.0,
+  "retry_rate": 0.0,
+  "avg_retries_per_record": 0.0,
+  "structural_failure_rate": 0.0,
+  "review_route_rate": 0.0,
+  "ground_truth_averages": {
+    "category_match": 0.08,
+    "condition_match": 0.24,
+    "price_range_match": 0.2,
+    "tag_recall": 0.004,
+    "overall_structural": 0.131
+  },
+  "judge_averages": null,
+  "per_record_results": [
+    {
+      "id": "eval-001",
+      "input": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones, Black, Bluetooth 5.2, 30hr battery, multipoint connection",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 65.6,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-002",
+      "input": "Apple MacBook Pro 14-inch M3 Pro chip, Space Black, 18GB RAM, 512GB SSD, sealed in box",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.5,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-003",
+      "input": "Refurbished Samsung Galaxy S23 Ultra 256GB Phantom Black unlocked - minor scratches on back",
+      "expected_category": "electronics",
+      "expected_condition": "refurbished",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.4,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-004",
+      "input": "USB-C charging cable 2m braided nylon",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-005",
+      "input": "Vintage 1980s Technics SL-1200MK2 Turntable direct drive, fully serviced, new stylus, original dust cover intact, tested and working perfectly - audiophile collector piece",
+      "expected_category": "electronics",
+      "expected_condition": "good",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-006",
+      "input": "Broken iPhone 12 Pro for parts only - cracked screen, won't turn on, water damage indicator tripped",
+      "expected_category": "electronics",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-007",
+      "input": "Logitech MX Master 3S Wireless Mouse used 6 months good condition",
+      "expected_category": "electronics",
+      "expected_condition": "like_new",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-008",
+      "input": "Canon EOS R6 Mark II Mirrorless Camera body only, shutter count 3200, includes original box, battery and charger",
+      "expected_category": "electronics",
+      "expected_condition": "like_new",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-009",
+      "input": "Raspberry Pi 5 4GB single-board computer",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-010",
+      "input": "Bose QuietComfort 45 headphones missing one ear cushion otherwise fully functional",
+      "expected_category": "electronics",
+      "expected_condition": "fair",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-011",
+      "input": "Levi's 501 Original Fit Jeans Men's W32 L32 stonewash blue pre-owned twice worn",
+      "expected_category": "clothing",
+      "expected_condition": "like_new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-012",
+      "input": "Patagonia Nano Puff Women's Jacket size M black new with tags retail $229",
+      "expected_category": "clothing",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-013",
+      "input": "Herm\u00e8s Birkin 30 Togo leather gold hardware Etoupe - includes dust bag, box, receipt",
+      "expected_category": "clothing",
+      "expected_condition": "good",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-014",
+      "input": "Vintage 1960s Emilio Pucci silk blouse size 10 worn condition but intact fabric",
+      "expected_category": "clothing",
+      "expected_condition": "fair",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-015",
+      "input": "Arc'teryx Beta AR Jacket Men's Medium Gore-Tex Pro used two seasons excellent condition",
+      "expected_category": "clothing",
+      "expected_condition": "good",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-016",
+      "input": "Bundle 3x plain white Gildan cotton t-shirts size XL",
+      "expected_category": "clothing",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-017",
+      "input": "Nike Air Max 90 sneakers size US 10 white/infrared colourway worn 5 times like new",
+      "expected_category": "clothing",
+      "expected_condition": "like_new",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.2,
+        "overall_structural": 0.3
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-018",
+      "input": "\u624b\u5de5\u7f16\u7ec7\u7f8a\u7ed2\u56f4\u5dfe \u9a7c\u8272 180cm \u6210\u90fd\u5236\u9020",
+      "expected_category": "clothing",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-019",
+      "input": "Zara floral midi dress size S worn once for wedding",
+      "expected_category": "clothing",
+      "expected_condition": "like_new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-020",
+      "input": "Old damaged work boots - steel cap, heavily worn, sole separating, kept as display item",
+      "expected_category": "clothing",
+      "expected_condition": "fair",
+      "expected_price_range": "unpriced",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-021",
+      "input": "KitchenAid Artisan Stand Mixer 4.8L Almond Cream brand new in sealed box never opened",
+      "expected_category": "home",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-022",
+      "input": "Mid-century modern teak coffee table 1960s Danish design good condition minor surface marks",
+      "expected_category": "home",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-023",
+      "input": "Dyson V15 Detect Cordless Vacuum Cleaner used 8 months all attachments included",
+      "expected_category": "home",
+      "expected_condition": "like_new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.4,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-024",
+      "input": "Antique Victorian chiffonier mahogany circa 1880 restored professionally two drawers mirrored back",
+      "expected_category": "home",
+      "expected_condition": "refurbished",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-025",
+      "input": "IKEA KALLAX shelf unit white 2x4 used 3 years some minor chips on edges",
+      "expected_category": "home",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-026",
+      "input": "Handmade ceramic mug set of 4 speckled glaze handcrafted in Byron Bay",
+      "expected_category": "home",
+      "expected_condition": "new",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-027",
+      "input": "Weber Genesis E-335 BBQ Gas Grill 3-burner stainless steel outdoor used one summer",
+      "expected_category": "home",
+      "expected_condition": "good",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-028",
+      "input": "Nest Learning Thermostat 3rd Generation works perfectly",
+      "expected_category": "home",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-029",
+      "input": "Mystery box of household items",
+      "expected_category": "home",
+      "expected_condition": "good",
+      "expected_price_range": "unpriced",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-030",
+      "input": "Broken French press coffee maker cracked glass carafe",
+      "expected_category": "home",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-031",
+      "input": "Trek Domane AL 3 Road Bike 56cm disc brakes 2022 used two seasons good condition minor handlebar scuffs",
+      "expected_category": "sports",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-032",
+      "input": "Patagonia Black Hole Duffel 55L travel bag used once like new",
+      "expected_category": "sports",
+      "expected_condition": "like_new",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-033",
+      "input": "Wilson Pro Staff RF97 Autograph Tennis Racket 4 3/8 grip unused still in plastic",
+      "expected_category": "sports",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-034",
+      "input": "Surfboard 6'2 shortboard thruster fins included dings repaired rideable",
+      "expected_category": "sports",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-035",
+      "input": "Yoga mat TPE non-slip 6mm thick with carrying strap - barely used",
+      "expected_category": "sports",
+      "expected_condition": "like_new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-036",
+      "input": "Titleist Pro V1 golf balls box of 12 played once washed",
+      "expected_category": "sports",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-037",
+      "input": "Olympic barbell 20kg chrome steel commercial grade used in commercial gym 5 years",
+      "expected_category": "sports",
+      "expected_condition": "fair",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-038",
+      "input": "Speedo Fastskin LZR Pure Intent 2 Jammer size 30 competition swimwear",
+      "expected_category": "sports",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-039",
+      "input": "Child's balance bike 12-inch wheels 2-4 years old scuffed and faded",
+      "expected_category": "sports",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 1.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-040",
+      "input": "Garmin Forerunner 965 GPS Running Watch titanium bezel like new worn twice",
+      "expected_category": "sports",
+      "expected_condition": "like_new",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-041",
+      "input": "Atomic Habits by James Clear paperback new",
+      "expected_category": "books",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-042",
+      "input": "Designing Data-Intensive Applications by Martin Kleppmann hardcover like new minor pencil notes",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Men's Merino Wool Sweater",
+        "description": "Lightweight merino wool crew-neck sweater in heather grey.",
+        "category": "clothing",
+        "condition": "like_new",
+        "price_range": "premium",
+        "tags": [
+          "merino",
+          "sweater",
+          "wool"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-043",
+      "input": "Complete 7-volume set Harry Potter hardcover UK first editions dust jackets intact some foxing on pages",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.2,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-044",
+      "input": "Textbook bundle: Introduction to Algorithms 4th edition + The Algorithm Design Manual both good condition highlighted",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "mid_range",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 1.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.5
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-045",
+      "input": "Le Petit Prince Antoine de Saint-Exup\u00e9ry \u00e9dition originale 1943 tr\u00e8s fragile",
+      "expected_category": "books",
+      "expected_condition": "fair",
+      "expected_price_range": "luxury",
+      "actual_output": {
+        "title": "Stainless Steel Cookware Set",
+        "description": "10-piece tri-ply stainless steel cookware set with glass lids.",
+        "category": "home",
+        "condition": "new",
+        "price_range": "premium",
+        "tags": [
+          "cookware",
+          "stainless",
+          "kitchen"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-046",
+      "input": "Cooking Light Annual Recipes 2005 paperback",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Noise-Cancelling Headphones",
+        "description": "Over-ear headphones with active noise cancellation and 30-hour battery.",
+        "category": "electronics",
+        "condition": "refurbished",
+        "price_range": "luxury",
+        "tags": [
+          "headphones",
+          "noise-cancelling",
+          "wireless"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-047",
+      "input": "The Design of Everyday Things Don Norman revised edition annotated throughout",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-048",
+      "input": "Box of assorted paperbacks various genres mixed condition",
+      "expected_category": "books",
+      "expected_condition": "good",
+      "expected_price_range": "unpriced",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 1.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.25
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-049",
+      "input": "Water-damaged textbook pages rippled cover warped still readable",
+      "expected_category": "books",
+      "expected_condition": "fair",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Wireless Bluetooth Speaker",
+        "description": "Portable speaker with 20-hour battery life and 360-degree sound.",
+        "category": "electronics",
+        "condition": "new",
+        "price_range": "mid_range",
+        "tags": [
+          "bluetooth",
+          "speaker",
+          "portable"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    },
+    {
+      "id": "eval-050",
+      "input": "The Art of War Sun Tzu translated by Thomas Cleary pocket paperback",
+      "expected_category": "books",
+      "expected_condition": "new",
+      "expected_price_range": "budget",
+      "actual_output": {
+        "title": "Trail Running Shoes",
+        "description": "Lightweight trail shoes with aggressive grip outsole.",
+        "category": "sports",
+        "condition": "good",
+        "price_range": "mid_range",
+        "tags": [
+          "running",
+          "shoes",
+          "lightweight"
+        ],
+        "language": "en"
+      },
+      "validation_passed": true,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": false,
+      "eval_score": 1.0,
+      "latency_ms": 0.3,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    }
+  ]
+}

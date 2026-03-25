@@ -1,0 +1,50 @@
+{
+  "run_date": "2026-03-25T06:22:48.575312+00:00",
+  "provider": "gemini",
+  "judge_enabled": false,
+  "dataset": "eval_data/product_metadata_50.jsonl",
+  "record_count": 1,
+  "total_elapsed_s": 1.6,
+  "avg_latency_ms": 1581.6,
+  "schema_compliance": 0.0,
+  "retry_rate": 0.0,
+  "avg_retries_per_record": 0.0,
+  "structural_failure_rate": 0.0,
+  "review_route_rate": 0.0,
+  "dlq_rate": 1.0,
+  "ground_truth_averages": {
+    "category_match": 0.0,
+    "condition_match": 0.0,
+    "price_range_match": 0.0,
+    "tag_recall": 0.0,
+    "overall_structural": 0.0
+  },
+  "judge_averages": null,
+  "per_record_results": [
+    {
+      "id": "eval-001",
+      "input": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones, Black, Bluetooth 5.2, 30hr battery, multipoint connection",
+      "expected_category": "electronics",
+      "expected_condition": "new",
+      "expected_price_range": "premium",
+      "actual_output": null,
+      "validation_passed": false,
+      "retry_count": 0,
+      "failure_type": null,
+      "sent_to_review": false,
+      "sent_to_engineering": false,
+      "sent_to_dlq": true,
+      "eval_score": null,
+      "latency_ms": 1581.6,
+      "ground_truth_scores": {
+        "category_match": 0.0,
+        "condition_match": 0.0,
+        "price_range_match": 0.0,
+        "tag_recall": 0.0,
+        "overall_structural": 0.0
+      },
+      "judge_scores": null,
+      "judge_overall": null
+    }
+  ]
+}
