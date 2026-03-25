@@ -124,7 +124,19 @@ class GeminiProvider:
         self._genai = genai
 
     async def generate(self, prompt: str, model_id: str) -> dict[str, Any]:
-        model = self._genai.GenerativeModel(model_id)
+        # Disable thinking for models that support it (Gemini 3+). The
+        # pipeline only needs structured JSON output; thinking tokens waste
+        # quota and can produce empty text responses.
+        gen_config: dict[str, Any] = {
+            "response_mime_type": "application/json",
+        }
+        try:
+            gen_config["thinking_config"] = self._genai.types.ThinkingConfig(
+                thinking_budget=0,
+            )
+        except (AttributeError, TypeError):
+            pass  # SDK too old or model doesn't support thinking — skip
+        model = self._genai.GenerativeModel(model_id, generation_config=gen_config)
         last_exc: BaseException | None = None
 
         for attempt, backoff in enumerate(_RETRY_BACKOFFS):
@@ -140,18 +152,40 @@ class GeminiProvider:
                     input_tokens=getattr(usage, "prompt_token_count", 0),
                     output_tokens=getattr(usage, "candidates_token_count", 0),
                 )
-                return json.loads(response.text)
+                # response.text may be empty for thinking models (Gemini 3+)
+                # because the SDK only returns the thinking parts. Fall back to
+                # extracting the first non-thinking text part manually.
+                text = response.text
+                if not text:
+                    for candidate in (response.candidates or []):
+                        for part in (getattr(candidate.content, "parts", []) or []):
+                            if not getattr(part, "thought", False) and getattr(part, "text", ""):
+                                text = part.text
+                                break
+                        if text:
+                            break
+                if not text:
+                    raise ValueError("Empty response from model")
+                return json.loads(text)
             except Exception as exc:  # noqa: BLE001
                 last_exc = exc
                 is_rate_limit = "429" in str(exc) or "quota" in str(exc).lower()
                 if is_rate_limit and attempt < len(_RETRY_BACKOFFS) - 1:
+                    # Honour the retry_delay from the API response if present;
+                    # fall back to exponential backoff otherwise.
+                    exc_str = str(exc)
+                    api_delay: float = backoff
+                    import re as _re
+                    m = _re.search(r"retry in (\d+(?:\.\d+)?)s", exc_str)
+                    if m:
+                        api_delay = float(m.group(1)) + 1.0  # +1s safety margin
                     logger.warning(
                         "gemini_rate_limit_retry",
                         model_id=model_id,
                         attempt=attempt + 1,
-                        backoff_s=backoff,
+                        backoff_s=api_delay,
                     )
-                    await asyncio.sleep(backoff)
+                    await asyncio.sleep(api_delay)
                     continue
                 logger.error("gemini_generate_error", model_id=model_id, error=str(exc))
                 raise

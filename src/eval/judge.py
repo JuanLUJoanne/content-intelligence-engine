@@ -218,13 +218,14 @@ Do not include any text outside of the JSON.
         user_input: str,
         candidate_output: str,
         reference_output: Optional[str] = None,
+        retry_delay: float = 2.0,
     ) -> DimensionScore:
         """Score a single dimension with one retry and a safe fallback.
 
         On the first attempt we call the LLM and try to parse the response.
-        If parsing fails we retry once with the same prompt. If the second
-        attempt also fails we return a neutral score of 0.5 so that downstream
-        aggregations degrade gracefully rather than raising an exception.
+        If parsing fails we wait ``retry_delay`` seconds then retry once. If the
+        second attempt also fails we return a neutral score of 0.5 so that
+        downstream aggregations degrade gracefully rather than raising an exception.
         """
         prompt = _DIMENSION_PROMPTS[dimension.value].format(
             user_input=user_input,
@@ -262,6 +263,7 @@ Do not include any text outside of the JSON.
                         dimension=dimension.value,
                         error=last_error,
                     )
+                    await asyncio.sleep(retry_delay)
                 else:
                     logger.warning(
                         "eval_dimension_fallback",
@@ -289,22 +291,29 @@ Do not include any text outside of the JSON.
         user_input: str,
         candidate_output: str,
         reference_output: Optional[str] = None,
+        inter_call_delay: float = 0.0,
     ) -> EvaluationResult:
         """Evaluate candidate_output along every dimension and return an aggregate.
 
-        Each dimension is judged in a separate LLM call so that targeted
-        criteria can be applied precisely. Invalid responses default to 0.5
-        rather than propagating exceptions.
+        Each dimension is judged in a separate, sequential LLM call so that
+        targeted criteria can be applied precisely without bursting the API
+        rate limit. ``inter_call_delay`` (seconds) is inserted between calls;
+        set this to match your ``--delay`` value when using a rate-limited
+        provider. Invalid responses default to 0.5 rather than propagating
+        exceptions.
         """
         dimensions = list(EvalDimension)
-        results = await asyncio.gather(*[
-            self._judge_dimension(
+        scored: list[DimensionScore] = []
+        for i, dim in enumerate(dimensions):
+            result = await self._judge_dimension(
                 dim,
                 user_input=user_input,
                 candidate_output=candidate_output,
                 reference_output=reference_output,
+                retry_delay=max(inter_call_delay, 2.0),
             )
-            for dim in dimensions
-        ])
-        scores: Dict[EvalDimension, DimensionScore] = dict(zip(dimensions, results))
+            scored.append(result)
+            if inter_call_delay > 0 and i < len(dimensions) - 1:
+                await asyncio.sleep(inter_call_delay)
+        scores: Dict[EvalDimension, DimensionScore] = dict(zip(dimensions, scored))
         return EvaluationResult(scores=scores)
