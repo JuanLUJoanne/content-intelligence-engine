@@ -135,17 +135,51 @@ The recommendation layer assigns users deterministically to variants using `hash
 | **LangGraph orchestration** | 7-node stateful pipeline with conditional edges, retry loops, and failure routing |
 | **SSE streaming** | Server-Sent Events progress stream for real-time UI integration |
 
-## Eval Metrics
+## Eval Framework
 
-| Metric | Baseline | Optimized |
-|---|---|---|
-| Schema Compliance | 91% | 98.5% |
-| Factual Accuracy | 0.74 | 0.89 |
-| Hallucination Rate | 12% | 3.1% |
-| Avg Cost / Record | $0.0042 | $0.0011 |
-| P95 Latency | 4.2 s | 1.1 s |
+The pipeline ships with a two-layer evaluation system designed to catch different failure modes at different granularities:
 
-*Baseline: GPT-4 for all records. Optimized: heuristic routing to Gemini Flash for 78% of traffic.*
+**Layer 1 — Deterministic ground-truth checks** compare LLM outputs field-by-field against a 50-record golden dataset (`eval_data/product_metadata_50.jsonl`) covering all enum values plus edge cases (5-word descriptions, 200+ word inputs, multi-language, ambiguous categories, no-price-signal records). These run without an API key and execute in CI on every commit.
+
+**Layer 2 — LLM-as-Judge scoring** evaluates outputs across five dimensions (factual accuracy, schema compliance, hallucination, semantic consistency, relevance) using per-dimension prompts with isolated scoring. Each dimension is judged in a separate call with built-in retry and graceful fallback, so one bad parse never blocks the full evaluation.
+
+Both layers feed into the same report, giving a combined view of structural correctness and semantic quality.
+
+### Model Selection
+
+Eval results below use **Gemini 3.1 Flash-Lite** — deliberately the smallest, cheapest model in the Gemini lineup. This is an intentional choice: the eval framework is designed to measure how well the *pipeline engineering* (error-feedback retries, failure routing, schema enforcement) compensates for weaker model capability. A stronger model would score higher, but would tell you less about whether your system-level guardrails actually work. The pipeline's model router supports hot-swapping to any Gemini or OpenAI backend — upgrading from Flash-Lite to a larger model is a one-line config change, and the eval framework lets you quantify exactly what you gain.
+
+### Pipeline Behaviour (Gemini 3.1 Flash-Lite)
+
+| Metric | Result | What it measures |
+|--------|--------|------------------|
+| Schema Compliance | **80%** | Validation pass rate after error-feedback retries |
+| Retry Self-Correction | 4/5 records self-corrected | Error-feedback loop feeds Pydantic errors back to the LLM |
+| Structural Failure → Engineering Queue | 1/5 | Prompt-level failures routed directly to engineering (no retry wasted) |
+| DLQ Rate | 0% | No API or network errors reached dead-letter queue |
+
+### LLM-as-Judge Quality Scores
+
+| Dimension | Score | What it evaluates |
+|-----------|-------|-------------------|
+| Factual Accuracy | **0.975** | Correctness of factual claims vs reference |
+| Hallucination (absence) | **0.975** | Whether output avoids inventing unsupported details |
+| Semantic Consistency | **0.988** | Whether output preserves intent of input |
+| Relevance | **1.000** | On-topic focus without digressions |
+| Schema Compliance | **0.900** | Format and constraint adherence |
+
+### Ground-Truth Accuracy
+
+| Field | Accuracy | Notes |
+|-------|----------|-------|
+| Category | 80% | Correct enum classification |
+| Condition | 60% | Ambiguous inputs cause misclassification |
+| Price Range | 40% | Model lacks price-signal context — prompt improvement target |
+| Tag Recall | 0% | Open-vocabulary tags; prompt does not constrain tag set |
+
+_Tag recall and price-range accuracy are known prompt gaps — the eval framework is designed to surface exactly these regressions so prompt iteration is data-driven rather than guesswork._
+
+_Reproduce: `python -m scripts.run_eval --provider dummy` (free, CI) or `python -m scripts.run_eval --provider gemini --judge --delay 5` (live eval)._
 
 ## Cost Comparison
 
@@ -162,8 +196,10 @@ Batch mode halves cost again by using provider batch APIs (50% discount) at the 
 ```bash
 cp .env.example .env          # add OPENAI_API_KEY / GOOGLE_API_KEY
 pip install -e .
-pytest tests/unit/ -v         # 251+ tests, ~8s
-python scripts/demo.py        # end-to-end demo without real API keys
+pytest tests/unit/ -v                                         # 251+ tests, ~8s
+python -m scripts.run_eval --provider dummy                   # eval without API key
+GOOGLE_API_KEY=xxx python -m scripts.run_eval --provider gemini --judge  # real eval (~$0.10)
+python scripts/demo.py                                        # end-to-end demo
 uvicorn src.api.main:app --reload
 ```
 

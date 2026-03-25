@@ -196,11 +196,11 @@ class ContentPipelineGraph:
             ↓
         route_model
             ↓
-        call_llm ←──────────────────────────(retry)──┐
-            ↓                                         │
-        validate_schema ──(fail, retries left)────────┘
-            ↓ (fail, max retries)
-        send_to_dlq
+        call_llm ←──────────────────────────────(retry)──┐
+            ↓                                             │
+        validate_schema ──(field_error, retries left)─────┘
+            │ (structural_failure) ──→ send_to_engineering
+            │ (field_error, max retries) ──→ send_to_review
             ↓ (pass)
         score_confidence ──(score < threshold)──→ send_to_review
             ↓
@@ -433,14 +433,6 @@ class ContentPipelineGraph:
             from_cache=state["cache_result"] is not None,
         )
         return {**state, "final_output": final}
-
-    async def _node_send_to_dlq(
-        self, state: ProcessingState, *, reason: str = "unknown"
-    ) -> ProcessingState:
-        updated: ProcessingState = {**state, "sent_to_dlq": True, "error": reason}
-        self._dlq.append(updated)
-        logger.warning("graph_sent_to_dlq", reason=reason)
-        return updated
 
     async def _node_send_to_engineering(
         self, state: ProcessingState, *, reason: str = "structural_failure"
