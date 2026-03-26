@@ -111,6 +111,11 @@ The recommendation layer assigns users deterministically to variants using `hash
 **7. MCP tool layer as a data-fetching adapter**
 `RecommendationAgent.run()` accepts an optional `MCPClient`. When provided, buyer history is fetched via the Model Context Protocol; when absent, the caller passes resolved asset lists directly. The mock path (`use_mock=True`) uses `hash()`-based determinism — no random seed, no network — so tests are reproducible without fixtures or patching.
 
+**8. Adaptive retrieval (observe → reason → act)**
+Fixed-query retrieval fails for edge-case users — sparse profiles, ambiguous interests, or cold-start buyers. `AdaptiveRetriever` wraps `AssetRetriever` in an LLM-in-the-loop that inspects search results and decides whether to accept or refine the query. The loop is bounded (`max_rounds=3`) so cost stays predictable, and every search goes through the same scoring logic the non-adaptive path uses. With `DummyProvider` the loop terminates after one round with zero extra cost, so tests and CI are unaffected.
+
+The initial query is still determined by the A/B variant (top-category for Variant A, top-affinity-tags for Variant B) rather than letting the LLM pick the first query from scratch. This is a deliberate trade-off: the variant-derived query is deterministic and grounded in actual user behaviour, so it produces a strong baseline result on round 1. Letting the LLM choose the initial query would add latency and cost to every request — including the majority where the first-round results are already good enough — while also breaking the A/B experiment's ability to attribute retrieval differences to variant strategy. The LLM only enters the loop *after* seeing round-1 results, where its judgement adds genuine value: deciding whether those results are relevant and, if not, generating a more targeted refinement.
+
 ## Production Features
 
 | Feature | Description |
@@ -127,6 +132,7 @@ The recommendation layer assigns users deterministically to variants using `hash
 | **Failure-type routing** | structural_failure → engineering queue; field_error (×3) → human review queue |
 | **Engineering queue** | REST API for ops to inspect and requeue structural validation failures |
 | **Human review queue** | Low-confidence and field-error outputs routed to review; approvals written to golden set |
+| **Adaptive retrieval** | LLM-in-the-loop search: observe results → decide relevance → refine query (up to 3 rounds) |
 | **Personalised recommendations** | A/B-tested email generation driven by tag-affinity buyer profiles |
 | **MCP tool layer** | MCPClient adapter fetches real buyer data; deterministic mock for offline testing |
 | **Input sanitization** | 12-pattern prompt injection detection with fast-fail at API boundary |
@@ -294,7 +300,8 @@ src/
 │   ├── main.py              # FastAPI app, routers, and all endpoints
 │   └── review.py            # Human review queue, engineering queue, golden-set management
 ├── agents/
-│   ├── recommendation_agent.py  # End-to-end personalised recommendation pipeline
+│   ├── recommendation_agent.py  # Agentic recommendation pipeline with adaptive retrieval
+│   ├── adaptive_retriever.py    # LLM-in-the-loop search with observe → reason → refine loop
 │   └── memory/
 │       └── buyer_profile.py     # BuyerProfile, tag-affinity computation, MCP-backed factory
 ├── ab_test/
