@@ -1,18 +1,14 @@
 """
-Recommendation agent: function pipeline for personalised product emails.
-
-This is a plain async function pipeline — not a LangGraph graph yet.  Each
-step is an explicit function call so the data flow is easy to follow, test,
-and extend.  When the complexity grows (tool use, multi-hop retrieval,
-memory persistence) the steps here map 1-to-1 onto LangGraph nodes.
+Recommendation agent: agentic pipeline for personalised product emails.
 
 Pipeline
 --------
 1. Build BuyerProfile from purchase and browsing history.
 2. Assign A/B variant (deterministic, hash-based).
-3. Retrieve top-5 assets from the available corpus.
-   - Variant A: filter by top_category (familiar-style retrieval).
-   - Variant B: search by top-3 affinity tags (discovery retrieval).
+3. Adaptive retrieval — LLM-in-the-loop search with up to 3 refinement
+   rounds.  The LLM observes search results, decides if they are relevant,
+   and can call ``search_assets`` again with a different query.  Falls back
+   to single-shot retrieval when the LLM is a DummyProvider.
 4. Generate recommendation email via LLM provider.
 5. Record cost via CostTracker.
 6. Evaluate email quality via LLMJudge.
@@ -30,10 +26,11 @@ from typing import Dict, List, Optional
 import structlog
 
 from src.ab_test.experiment import ABExperiment, Variant
+from src.agents.adaptive_retriever import AdaptiveRetriever
 from src.agents.memory.buyer_profile import BuyerProfile, build_buyer_profile, make_buyer_profile
 from src.eval.judge import LLMJudge
 from src.gateway.cost_tracker import CostTracker
-from src.gateway.providers import ProviderFactory
+from src.gateway.providers import LLMProvider, ProviderFactory
 from src.mcp.client import MCPClient
 from src.retrieval.asset_retriever import AssetRetriever
 from src.schemas.metadata import ContentMetadata
@@ -164,8 +161,8 @@ class RecommendationAgent:
         # Step 2 — assign variant
         variant = self._experiment.assign_variant(user_id)
 
-        # Step 3 — retrieve top assets
-        assets = self._retrieve(available_assets, profile, variant)
+        # Step 3 — adaptive retrieval (LLM-in-the-loop)
+        assets = await self._retrieve(available_assets, profile, variant)
 
         # Step 4 — generate email
         email, prompt_used = await self._generate_email(profile, variant, assets)
@@ -208,21 +205,27 @@ class RecommendationAgent:
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _retrieve(
+    async def _retrieve(
         self,
         corpus: List[ContentMetadata],
         profile: BuyerProfile,
         variant: Variant,
     ) -> List[ContentMetadata]:
-        """Select retrieval strategy by variant and return ranked assets."""
-        retriever = AssetRetriever(corpus, top_n=self._TOP_N_ASSETS)
+        """Run adaptive retrieval: variant determines the initial query,
+        then the LLM decides whether to refine."""
+        base_retriever = AssetRetriever(corpus, top_n=self._TOP_N_ASSETS)
+        adaptive = AdaptiveRetriever(
+            base_retriever,
+            self._provider,
+            model_id=self._model_id,
+            max_rounds=3,
+            top_n=self._TOP_N_ASSETS,
+        )
 
         if variant is Variant.A:
-            # Purchase-history strategy: pull items from the buyer's top category.
             query = profile["top_category"]
-            filters: Dict = {"category": profile["top_category"]}
+            filters: Optional[Dict] = {"category": profile["top_category"]}
         else:
-            # Browsing-pattern strategy: search by highest-affinity tags.
             tag_affinity = profile["tag_affinity"]
             top_tags = sorted(
                 tag_affinity, key=tag_affinity.get, reverse=True  # type: ignore[arg-type]
@@ -230,7 +233,9 @@ class RecommendationAgent:
             query = " ".join(top_tags) if top_tags else profile["top_category"]
             filters = {"tags": top_tags}
 
-        return retriever.search(query, filters)
+        return await adaptive.search(
+            profile, initial_query=query, initial_filters=filters,
+        )
 
     async def _generate_email(
         self,
