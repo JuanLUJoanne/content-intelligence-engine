@@ -1,0 +1,75 @@
+{
+  "routing_strategy": {
+    "benchmark": "routing_strategy",
+    "record_count": 50,
+    "variants": {
+      "all_flash": {
+        "cost": 0.0,
+        "avg_latency_ms": 1.8,
+        "compliance": 1.0,
+        "tier_distribution": {
+          "flash-model": 50
+        }
+      },
+      "all_premium": {
+        "cost": 0.0595,
+        "avg_latency_ms": 0.3,
+        "compliance": 1.0,
+        "tier_distribution": {
+          "premium-model": 50
+        }
+      },
+      "heuristic": {
+        "cost": 0.005,
+        "avg_latency_ms": 0.3,
+        "compliance": 1.0,
+        "tier_distribution": {
+          "standard-model": 50
+        }
+      }
+    },
+    "conclusion": "Heuristic routing achieves 100% compliance at $0.0050 (8% of premium cost)"
+  },
+  "retry_strategy": {
+    "benchmark": "retry_strategy",
+    "record_count": 50,
+    "variants": {
+      "blind_retry": {
+        "fix_rate": 1.0,
+        "avg_retries": 1.0,
+        "fix_by_attempt": {
+          "1": 0,
+          "2": 50,
+          "3": 0
+        }
+      },
+      "error_feedback": {
+        "fix_rate": 1.0,
+        "avg_retries": 1.0,
+        "fix_by_attempt": {
+          "1": 0,
+          "2": 50,
+          "3": 0
+        }
+      }
+    },
+    "delta": {
+      "fix_rate_improvement": "+0.0 pp",
+      "retry_reduction": "+0.00 retries avg"
+    }
+  },
+  "judge_agreement": {
+    "benchmark": "judge_agreement",
+    "sample_size": 10,
+    "agreement_rate": 0.9,
+    "per_dimension_avg": {
+      "factual_accuracy": 0.5,
+      "schema_compliance": 0.5,
+      "hallucination": 0.5,
+      "semantic_consistency": 0.5,
+      "relevance": 0.5
+    },
+    "divergence_count": 1,
+    "note": "Judge/ground-truth disagreement on 1/10 records"
+  }
+}
