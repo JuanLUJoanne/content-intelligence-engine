@@ -17,7 +17,7 @@ uvicorn = ">=0.30.0"
 structlog = "^24.0.0"
 tiktoken = "^0.7.0"
 python-dotenv = "^1.0.0"
-langfuse = ">=2.0.0"
+langfuse = "^3.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.0"
