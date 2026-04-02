@@ -21,12 +21,25 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from typing import Any, Callable, Optional, Protocol, TypedDict, runtime_checkable
 
 import structlog
 from pydantic import ValidationError
 
 from src.gateway.providers import LLMProvider, ProviderFactory
+from src.observability.metrics import (
+    CACHE_HITS_TOTAL,
+    CACHE_MISSES_TOTAL,
+    DLQ_ROUTES_TOTAL,
+    ENGINEERING_ROUTES_TOTAL,
+    EVAL_SCORE,
+    LLM_CALL_LATENCY,
+    LLM_CALLS_TOTAL,
+    REVIEW_ROUTES_TOTAL,
+    VALIDATION_RETRIES_TOTAL,
+    Metrics,
+)
 from src.schemas.metadata import ContentMetadata
 
 
@@ -239,6 +252,7 @@ class ContentPipelineGraph:
             engineering_queue if engineering_queue is not None else []
         )
         self._prompt_version = prompt_version
+        self._metrics = Metrics()
 
     # ------------------------------------------------------------------
     # Entry point
@@ -287,6 +301,7 @@ class ContentPipelineGraph:
                 return await self._node_send_to_review(state)
 
             state = {**state, "retry_count": state["retry_count"] + 1}
+            self._metrics.inc(VALIDATION_RETRIES_TOTAL)
             logger.info("graph_retry", retry_count=state["retry_count"])
 
         # Node 6: score confidence
@@ -320,8 +335,10 @@ class ContentPipelineGraph:
         key = _cache_key(state["record"])
         cached = await self._cache.get(key)
         if cached is not None:
+            self._metrics.inc(CACHE_HITS_TOTAL)
             logger.info("graph_cache_hit", record_id=str(state["record"].get("id", "")))
             return {**state, "cache_result": cached}
+        self._metrics.inc(CACHE_MISSES_TOTAL)
         return state
 
     async def _node_route_model(self, state: ProcessingState) -> ProcessingState:
@@ -347,13 +364,17 @@ class ContentPipelineGraph:
         else:
             prompt = original_prompt
 
+        model = state["model_id"] or self._model_id
+        t0 = time.monotonic()
         try:
-            result = await self._provider.generate(
-                prompt, state["model_id"] or self._model_id
-            )
-            logger.info("graph_llm_called", model_id=state["model_id"])
+            result = await self._provider.generate(prompt, model)
+            elapsed = time.monotonic() - t0
+            self._metrics.inc(LLM_CALLS_TOTAL, labels={"model": model})
+            self._metrics.observe(LLM_CALL_LATENCY, elapsed)
+            logger.info("graph_llm_called", model_id=model)
             return {**state, "llm_output": result}
         except Exception as exc:
+            self._metrics.inc(DLQ_ROUTES_TOTAL)
             logger.error("graph_llm_error", error=str(exc))
             return {**state, "error": str(exc), "sent_to_dlq": True}
 
@@ -409,6 +430,7 @@ class ContentPipelineGraph:
 
     async def _node_score_confidence(self, state: ProcessingState) -> ProcessingState:
         score = self._confidence_fn(state["llm_output"] or {})
+        self._metrics.observe(EVAL_SCORE, score)
         logger.info("graph_confidence_scored", score=score)
         return {**state, "eval_score": score}
 
@@ -443,6 +465,7 @@ class ContentPipelineGraph:
             "error": reason,
         }
         self._engineering_queue.append(updated)
+        self._metrics.inc(ENGINEERING_ROUTES_TOTAL)
         logger.error(
             "graph_sent_to_engineering",
             reason=reason,
@@ -454,5 +477,6 @@ class ContentPipelineGraph:
     async def _node_send_to_review(self, state: ProcessingState) -> ProcessingState:
         updated: ProcessingState = {**state, "sent_to_review": True}
         self._review_queue.append(updated)
+        self._metrics.inc(REVIEW_ROUTES_TOTAL)
         logger.info("graph_sent_to_review", eval_score=state["eval_score"])
         return updated

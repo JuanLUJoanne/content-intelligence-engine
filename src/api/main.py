@@ -543,6 +543,14 @@ async def evaluate_output(
     return EvaluateResponse(scores=scores, overall=result.overall_score)
 
 
+@app.get("/metrics")
+async def get_metrics() -> Dict[str, Any]:
+    """Export application metrics as JSON for monitoring dashboards."""
+    from src.observability.metrics import Metrics
+
+    return Metrics().snapshot()
+
+
 @app.get("/health")
 async def health() -> Dict[str, Any]:
     """Liveness endpoint; also reports passing test count (cached 5 min)."""
