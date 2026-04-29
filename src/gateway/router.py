@@ -154,6 +154,14 @@ class ModelRouter:
             return ModelTier.FLASH
         if complexity < 0.7:
             return ModelTier.STANDARD
+
+        # Feature flag gate: if premium tier is disabled, cap at STANDARD.
+        from src.feature_flags.registry import get_flag_registry
+        flags = get_flag_registry()
+        if not flags.is_enabled("premium_tier_enabled"):
+            logger.info("premium_tier_disabled_by_flag", complexity=complexity)
+            return ModelTier.STANDARD
+
         return ModelTier.PREMIUM
 
     def _tier_index(self, tier: ModelTier) -> int:

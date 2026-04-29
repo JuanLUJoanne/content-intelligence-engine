@@ -1,0 +1,32 @@
+# Feature flag definitions for the Content Intelligence Engine.
+#
+# Flag types:
+#   boolean    — simple on/off toggle
+#   percentage — hash-based rollout (0–100%), stable per request_id
+#   segment    — enabled only for listed segments (e.g. "internal", "beta")
+#
+# Hot-reloaded: the registry watches this file's mtime and reloads
+# automatically when it changes. Runtime overrides via POST /api/flags/{name}
+# take precedence but do not persist here.
+
+flags:
+  new_model_rollout:
+    type: percentage
+    enabled: true
+    percentage: 0
+    description: "Canary rollout for new LLM model. Increase percentage to shift traffic."
+
+  enhanced_prompt_v2:
+    type: boolean
+    enabled: false
+    description: "Toggle between v1 (current) and v2 (enhanced) prompt templates."
+
+  premium_tier_enabled:
+    type: boolean
+    enabled: true
+    description: "Allow the router to select PREMIUM tier models. Disable to cap spend."
+
+  reflection_enabled:
+    type: boolean
+    enabled: false
+    description: "Enable LLM self-critique step after extraction (adds latency + cost)."

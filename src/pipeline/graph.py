@@ -342,11 +342,30 @@ class ContentPipelineGraph:
         return state
 
     async def _node_route_model(self, state: ProcessingState) -> ProcessingState:
-        logger.info("graph_route_model", model_id=self._model_id)
-        return {**state, "model_id": self._model_id}
+        model_id = self._model_id
+
+        # Feature flag: canary rollout for new model.
+        from src.feature_flags.registry import get_flag_registry
+        flags = get_flag_registry()
+        request_id = str(state["record"].get("id", ""))
+        if flags.is_enabled("new_model_rollout", {"key": request_id}):
+            model_id = "gemini-2.0-flash"
+            logger.info("canary_model_selected", model_id=model_id, request_id=request_id)
+
+        logger.info("graph_route_model", model_id=model_id)
+        return {**state, "model_id": model_id}
 
     async def _node_call_llm(self, state: ProcessingState) -> ProcessingState:
         original_prompt = json.dumps(state["record"], ensure_ascii=False)
+
+        # Feature flag: select prompt version at call time.
+        from src.feature_flags.registry import get_flag_registry
+        flags = get_flag_registry()
+        if flags.is_enabled("enhanced_prompt_v2"):
+            original_prompt = (
+                "You are an expert content metadata extractor (v2 — enhanced). "
+                "Return ONLY valid JSON.\n\n" + original_prompt
+            )
 
         # On a retry, build an error-feedback prompt so the LLM knows exactly
         # what it got wrong rather than blindly regenerating the same output.
@@ -432,6 +451,26 @@ class ContentPipelineGraph:
         score = self._confidence_fn(state["llm_output"] or {})
         self._metrics.observe(EVAL_SCORE, score)
         logger.info("graph_confidence_scored", score=score)
+
+        # Feature flag: LLM self-critique on extraction output.
+        from src.feature_flags.registry import get_flag_registry
+        flags = get_flag_registry()
+        if flags.is_enabled("reflection_enabled"):
+            llm_output = state["llm_output"] or {}
+            reflection_prompt = (
+                "Review this extraction output for errors. "
+                "Return the corrected JSON or the same JSON if correct.\n\n"
+                + json.dumps(llm_output, ensure_ascii=False)
+            )
+            try:
+                model = state["model_id"] or self._model_id
+                refined = await self._provider.generate(reflection_prompt, model)
+                self._metrics.inc(LLM_CALLS_TOTAL, labels={"model": f"{model}_reflection"})
+                logger.info("reflection_applied", model=model)
+                return {**state, "eval_score": score, "llm_output": refined}
+            except Exception:
+                logger.warning("reflection_failed_continuing", exc_info=True)
+
         return {**state, "eval_score": score}
 
     async def _node_store_result(self, state: ProcessingState) -> ProcessingState:
