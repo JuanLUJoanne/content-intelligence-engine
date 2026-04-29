@@ -32,7 +32,9 @@ from src.eval.judge import LLMJudge
 from src.gateway.cost_tracker import CostTracker
 from src.gateway.providers import LLMProvider, ProviderFactory
 from src.mcp.client import MCPClient
+from src.mcp.trending import TrendingTool
 from src.retrieval.asset_retriever import AssetRetriever
+from src.retrieval.validator import mmr_rerank, validate_item
 from src.schemas.metadata import ContentMetadata
 
 
@@ -99,6 +101,7 @@ class RecommendationAgent:
 
     _TOP_N_ASSETS = 5
     _TOP_AFFINITY_TAGS = 3
+    _CROSS_CATEGORY_THRESHOLD = 2  # min distinct categories to trigger cross-cat
 
     def __init__(
         self,
@@ -211,15 +214,22 @@ class RecommendationAgent:
         profile: BuyerProfile,
         variant: Variant,
     ) -> List[ContentMetadata]:
-        """Run adaptive retrieval: variant determines the initial query,
-        then the LLM decides whether to refine."""
-        base_retriever = AssetRetriever(corpus, top_n=self._TOP_N_ASSETS)
+        """Run adaptive retrieval with validation, MMR diversity, and trending fallback.
+
+        Steps:
+        1. Variant-derived query → adaptive retrieval (LLM-in-the-loop)
+        2. Validate candidates (filter non-recommendable items)
+        3. MMR rerank for diversity
+        4. If too few results, backfill with trending items
+        """
+        purchased_ids = frozenset(profile.get("purchase_history", []))
+        base_retriever = AssetRetriever(corpus, top_n=self._TOP_N_ASSETS * 2)
         adaptive = AdaptiveRetriever(
             base_retriever,
             self._provider,
             model_id=self._model_id,
             max_rounds=3,
-            top_n=self._TOP_N_ASSETS,
+            top_n=self._TOP_N_ASSETS * 2,
         )
 
         if variant is Variant.A:
@@ -233,9 +243,45 @@ class RecommendationAgent:
             query = " ".join(top_tags) if top_tags else profile["top_category"]
             filters = {"tags": top_tags}
 
-        return await adaptive.search(
+        raw = await adaptive.search(
             profile, initial_query=query, initial_filters=filters,
         )
+
+        # Cross-category expansion: if user browsed 2+ categories, also search
+        # without category filter to surface serendipitous matches.
+        tag_affinity = profile.get("tag_affinity", {})
+        affinity_categories = self._distinct_affinity_categories(corpus, tag_affinity)
+        if len(affinity_categories) >= self._CROSS_CATEGORY_THRESHOLD:
+            all_tags = sorted(tag_affinity, key=tag_affinity.get, reverse=True)  # type: ignore[arg-type]
+            cross_query = " ".join(all_tags[:5]) if all_tags else query
+            cross_results = base_retriever.search(cross_query, {"tags": all_tags[:5]})
+            seen = {a.content_id for a in raw}
+            for item in cross_results:
+                if item.content_id not in seen:
+                    raw.append(item)
+                    seen.add(item.content_id)
+
+        # Validate: filter out non-recommendable and already-purchased items
+        valid = [a for a in raw if validate_item(a, exclude_ids=purchased_ids)]
+
+        # MMR rerank for diversity
+        diverse = mmr_rerank(valid, top_k=self._TOP_N_ASSETS)
+
+        # Trending fallback if too few candidates
+        if len(diverse) < self._TOP_N_ASSETS:
+            trending = TrendingTool().get_trending(
+                category=profile["top_category"],
+                top_k=self._TOP_N_ASSETS - len(diverse),
+            )
+            seen = {a.content_id for a in diverse}
+            for t in trending:
+                if t.content_id not in seen and t.content_id not in purchased_ids:
+                    diverse.append(t)
+                    seen.add(t.content_id)
+                if len(diverse) >= self._TOP_N_ASSETS:
+                    break
+
+        return diverse[: self._TOP_N_ASSETS]
 
     async def _generate_email(
         self,
@@ -280,6 +326,18 @@ class RecommendationAgent:
             prompt_length=len(full_prompt),
         )
         return email, full_prompt
+
+    @staticmethod
+    def _distinct_affinity_categories(
+        corpus: List[ContentMetadata],
+        tag_affinity: Dict[str, float],
+    ) -> set[str]:
+        """Return distinct categories among corpus items whose tags overlap with affinity."""
+        cats: set[str] = set()
+        for asset in corpus:
+            if any(t in tag_affinity for t in asset.tags):
+                cats.add(asset.category.value)
+        return cats
 
     def _record_cost(self, prompt: str) -> Decimal:
         """Record LLM cost and return it; returns Decimal('0') gracefully on failure."""
