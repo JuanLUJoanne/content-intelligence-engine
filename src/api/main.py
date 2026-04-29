@@ -355,11 +355,20 @@ async def process_content(
     metadata = _build_metadata(payload, final)
     confidence = float(state.get("eval_score") or 1.0)
 
-    # --- Audit log ---
+    # --- Feature flag snapshot for observability ---
+    from src.feature_flags.registry import get_flag_registry
+    _ff = get_flag_registry()
+    active_flags = {
+        name: _ff.get_variant(name, {"key": request_id})
+        for name in _ff.list_flags()
+    }
+
+    # --- Audit log (embed flag state in output for traceability) ---
+    audit_output = json.dumps({**final, "_flags": active_flags})
     await _audit_logger.log(
         request_id=request_id,
         input=payload.text,
-        output=json.dumps(final),
+        output=audit_output,
         model=model,
         cost=float(cost),
         timestamp=time.time(),
@@ -543,12 +552,97 @@ async def evaluate_output(
     return EvaluateResponse(scores=scores, overall=result.overall_score)
 
 
+class RecommendRequest(BaseModel):
+    """Recommendation request payload."""
+
+    user_id: str
+    item_id: Optional[str] = None
+    max_results: int = 5
+
+
+@app.post("/recommend")
+async def recommend(payload: RecommendRequest) -> Dict[str, Any]:
+    """Get personalised recommendations for a user."""
+    from src.agents.recommendation_agent import RecommendationAgent
+    from src.mcp.client import MCPClient
+
+    agent = RecommendationAgent()
+    mcp = MCPClient(use_mock=True)
+
+    # Fetch corpus from MCP mock (in production: real data source)
+    asset_ids = await mcp.get_browsing_history("catalog", limit=50)
+    corpus = await mcp.get_asset_metadata(asset_ids)
+
+    result = await agent.run(
+        payload.user_id,
+        corpus,
+        mcp_client=mcp,
+    )
+
+    return {
+        "user_id": payload.user_id,
+        "variant": result.variant.value,
+        "eval_score": result.eval_score,
+        "cost": float(result.cost),
+        "assets": [
+            {"content_id": a.content_id, "title": a.title, "category": a.category.value}
+            for a in result.assets
+        ],
+        "email": result.email[:500],
+    }
+
+
 @app.get("/metrics")
 async def get_metrics() -> Dict[str, Any]:
     """Export application metrics as JSON for monitoring dashboards."""
     from src.observability.metrics import Metrics
 
     return Metrics().snapshot()
+
+
+# ---------------------------------------------------------------------------
+# Feature flag endpoints
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/flags")
+async def list_flags() -> Dict[str, Any]:
+    """List all feature flags with their current state."""
+    from src.feature_flags.registry import get_flag_registry
+
+    registry = get_flag_registry()
+    return {"flags": registry.list_flags()}
+
+
+class FlagToggleRequest(BaseModel):
+    """Payload for toggling a feature flag at runtime."""
+
+    enabled: Optional[bool] = None
+    percentage: Optional[int] = None
+
+
+@app.post("/api/flags/{name}")
+async def toggle_flag(name: str, payload: FlagToggleRequest) -> Dict[str, Any]:
+    """Toggle a feature flag at runtime (admin only).
+
+    Overrides are held in memory and do not persist to the YAML file.
+    """
+    from src.feature_flags.registry import get_flag_registry
+
+    registry = get_flag_registry()
+    flags = registry.list_flags()
+
+    if name not in flags:
+        raise HTTPException(status_code=404, detail=f"Unknown flag: {name}")
+
+    if payload.enabled is not None:
+        registry.set_override(name, payload.enabled)
+    elif payload.percentage is not None:
+        registry.set_override(name, {"percentage": payload.percentage, "enabled": True})
+    else:
+        registry.clear_override(name)
+
+    return {"flag": name, "state": registry.list_flags().get(name, {})}
 
 
 @app.get("/health")

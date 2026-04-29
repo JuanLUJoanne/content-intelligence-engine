@@ -229,6 +229,20 @@ With `DummyProvider` both strategies converge — the deterministic provider alw
 
 Per-dimension scores are 0.5 (the `DummyProvider` fallback), confirming the judge correctly exercises all five scoring dimensions and falls back gracefully when the provider cannot reason. The 90% agreement rate shows the judge/ground-truth classification boundary (>0.5 = pass) is well-calibrated even with dummy outputs.
 
+## Framework Portability
+
+The pipeline is framework-agnostic by design. Core logic lives in plain Python classes with no framework imports; orchestration is isolated in `graph.py` and `adaptive_retriever.py`.
+
+| This repo | LangGraph equivalent | Google ADK equivalent |
+|-----------|---------------------|----------------------|
+| `ContentPipelineGraph` (node dict + conditional edges) | `StateGraph` with `add_node` / `add_conditional_edges` | `SequentialAgent` with `sub_agents` |
+| `AdaptiveRetriever` (observe → reason → act loop) | `ToolNode` + `should_continue` router | `Agent` with `tools=[search_assets]` (ReAct loop) |
+| `BuyerProfile` dict passed through nodes | `TypedDict` state schema | `Session.state` |
+| `AssetRetriever.search()` | LangChain `Tool` wrapper | ADK `FunctionTool` wrapper |
+| `LLMProvider` protocol | `BaseChatModel` interface | `LlmAgent.model` parameter |
+
+**Migrating to LangGraph** requires wrapping each `_node_*` method as a graph node and replacing the manual edge dict with `add_conditional_edges` — roughly a wiring change in one file. **Migrating to ADK** means converting `AdaptiveRetriever` into an `Agent` with `search_assets` as a `FunctionTool` and letting ADK's ReAct loop replace the manual round counter. In both cases, retrieval scoring, validation, cost tracking, and eval logic remain untouched.
+
 ## Cost Comparison
 
 | Mode | Model | Cost / 1K records | Cost @ 10M records |
@@ -244,7 +258,7 @@ Batch mode halves cost again by using provider batch APIs (50% discount) at the 
 ```bash
 cp .env.example .env          # add OPENAI_API_KEY / GOOGLE_API_KEY
 pip install -e .
-pytest tests/unit/ -v                                         # 251+ tests, ~8s
+pytest tests/unit/ -v                                         # 305+ tests, ~8s
 python -m scripts.run_eval --provider dummy                   # eval without API key
 GOOGLE_API_KEY=xxx python -m scripts.run_eval --provider gemini --judge  # real eval (~$0.10)
 python scripts/demo.py                                        # end-to-end demo
@@ -332,7 +346,7 @@ data: {"event": "complete", "status": "ok", "metadata": {...}}
 | API framework | FastAPI + Uvicorn |
 | Storage | SQLite (checkpoints), JSON (golden set), JSONL (audit log) |
 | Logging | structlog (structured JSON logs) |
-| Testing | pytest + pytest-asyncio (251+ unit tests) |
+| Testing | pytest + pytest-asyncio (305+ unit tests) |
 
 ## Project Layout
 
