@@ -199,7 +199,7 @@ def _build_retry_prompt(
 
 
 class ContentPipelineGraph:
-    """Seven-node content pipeline with conditional routing.
+    """Eight-node content pipeline with conditional routing.
 
     Execution order::
 
@@ -215,6 +215,8 @@ class ContentPipelineGraph:
             │ (structural_failure) ──→ send_to_engineering
             │ (field_error, max retries) ──→ send_to_review
             ↓ (pass)
+        reflect ──(if reflection_enabled flag is on)
+            ↓
         score_confidence ──(score < threshold)──→ send_to_review
             ↓
         store_result
@@ -304,7 +306,10 @@ class ContentPipelineGraph:
             self._metrics.inc(VALIDATION_RETRIES_TOTAL)
             logger.info("graph_retry", retry_count=state["retry_count"])
 
-        # Node 6: score confidence
+        # Node 6: reflect (self-critique, gated by feature flag)
+        state = await self._node_reflect(state)
+
+        # Node 7: score confidence
         state = await self._node_score_confidence(state)
         if (
             state["eval_score"] is not None
@@ -312,7 +317,7 @@ class ContentPipelineGraph:
         ):
             return await self._node_send_to_review(state)
 
-        # Node 7: store result
+        # Node 8: store result
         return await self._node_store_result(state)
 
     # ------------------------------------------------------------------
@@ -447,30 +452,46 @@ class ContentPipelineGraph:
             "failure_type": failure_type,
         }
 
+    async def _node_reflect(self, state: ProcessingState) -> ProcessingState:
+        """Self-critique node: ask the LLM to review its own extraction.
+
+        Gated behind the ``reflection_enabled`` feature flag. When disabled
+        this is a no-op pass-through. When enabled, a lightweight critique
+        checks factual accuracy, hallucination, and schema compliance. If
+        issues are found, a single re-extraction is attempted with the
+        critique feedback. Parse failures are treated as approved (fail-open).
+        """
+        from src.feature_flags.registry import get_flag_registry
+        flags = get_flag_registry()
+        if not flags.is_enabled("reflection_enabled"):
+            return state
+
+        from src.pipeline.reflection import reflect
+
+        llm_output = state["llm_output"] or {}
+        input_text = json.dumps(state["record"], ensure_ascii=False)
+        model = state["model_id"] or self._model_id
+
+        corrected, critique = await reflect(
+            provider=self._provider,
+            model_id=model,
+            input_text=input_text,
+            llm_output=llm_output,
+            metrics=self._metrics,
+        )
+
+        logger.info(
+            "graph_reflection_complete",
+            approved=critique.approved,
+            issues=critique.issues,
+        )
+
+        return {**state, "llm_output": corrected}
+
     async def _node_score_confidence(self, state: ProcessingState) -> ProcessingState:
         score = self._confidence_fn(state["llm_output"] or {})
         self._metrics.observe(EVAL_SCORE, score)
         logger.info("graph_confidence_scored", score=score)
-
-        # Feature flag: LLM self-critique on extraction output.
-        from src.feature_flags.registry import get_flag_registry
-        flags = get_flag_registry()
-        if flags.is_enabled("reflection_enabled"):
-            llm_output = state["llm_output"] or {}
-            reflection_prompt = (
-                "Review this extraction output for errors. "
-                "Return the corrected JSON or the same JSON if correct.\n\n"
-                + json.dumps(llm_output, ensure_ascii=False)
-            )
-            try:
-                model = state["model_id"] or self._model_id
-                refined = await self._provider.generate(reflection_prompt, model)
-                self._metrics.inc(LLM_CALLS_TOTAL, labels={"model": f"{model}_reflection"})
-                logger.info("reflection_applied", model=model)
-                return {**state, "eval_score": score, "llm_output": refined}
-            except Exception:
-                logger.warning("reflection_failed_continuing", exc_info=True)
-
         return {**state, "eval_score": score}
 
     async def _node_store_result(self, state: ProcessingState) -> ProcessingState:
